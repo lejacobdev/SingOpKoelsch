@@ -21,13 +21,14 @@ struct RandomSong: Codable {
 struct SongEntry: TimelineEntry {
     let date: Date
     let song: RandomSong?
+    let coverImage: UIImage?
 }
 
 // MARK: - Provider
 
 struct SongProvider: TimelineProvider {
     func placeholder(in context: Context) -> SongEntry {
-        SongEntry(date: .now, song: RandomSong(id: 0, title: "Kölsche Klassiker", bandName: "Bläck Fööss", coverUrl: nil))
+        SongEntry(date: .now, song: RandomSong(id: 0, title: "Kölsche Klassiker", bandName: "Bläck Fööss", coverUrl: nil), coverImage: nil)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (SongEntry) -> Void) {
@@ -44,17 +45,29 @@ struct SongProvider: TimelineProvider {
 
     private func fetchRandom(completion: @escaping (SongEntry) -> Void) {
         guard let url = URL(string: "https://singopkoelsch.de/api/songs/random") else {
-            completion(SongEntry(date: .now, song: nil)); return
+            completion(SongEntry(date: .now, song: nil, coverImage: nil)); return
         }
         let cfg = URLSessionConfiguration.ephemeral
         cfg.timeoutIntervalForRequest = 20
-        URLSession(configuration: cfg).dataTask(with: url) { data, _, _ in
+        let session = URLSession(configuration: cfg)
+
+        session.dataTask(with: url) { data, _, _ in
             var song: RandomSong? = nil
             if let data {
                 struct Envelope: Decodable { let ok: Bool; let data: RandomSong? }
                 song = (try? JSONDecoder().decode(Envelope.self, from: data))?.data
             }
-            completion(SongEntry(date: .now, song: song))
+
+            // Fetch cover image if available
+            if let coverUrlStr = song?.coverUrl,
+               let coverUrl = URL(string: coverUrlStr) {
+                session.dataTask(with: coverUrl) { imgData, _, _ in
+                    let image = imgData.flatMap { UIImage(data: $0) }
+                    completion(SongEntry(date: .now, song: song, coverImage: image))
+                }.resume()
+            } else {
+                completion(SongEntry(date: .now, song: song, coverImage: nil))
+            }
         }.resume()
     }
 }
@@ -68,9 +81,9 @@ struct SongWidgetEntryView: View {
     var body: some View {
         if let song = entry.song {
             switch family {
-            case .systemSmall:  SmallView(song: song)
-            case .systemMedium: MediumView(song: song)
-            default:            SmallView(song: song)
+            case .systemSmall:  SmallView(song: song, coverImage: entry.coverImage)
+            case .systemMedium: MediumView(song: song, coverImage: entry.coverImage)
+            default:            SmallView(song: song, coverImage: entry.coverImage)
             }
         } else {
             placeholderView
@@ -93,6 +106,7 @@ struct SongWidgetEntryView: View {
 
 private struct SmallView: View {
     let song: RandomSong
+    let coverImage: UIImage?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -100,44 +114,61 @@ private struct SmallView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text("Zufallslied")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.75))
                     .textCase(.uppercase)
                     .kerning(0.5)
                 Text(song.title)
                     .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)
                 Text(song.bandName)
                     .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.75))
                     .lineLimit(1)
             }
         }
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-        .containerBackground(
-            LinearGradient(colors: [Color(red: 0.12, green: 0.22, blue: 0.54),
-                                    Color(red: 0.15, green: 0.27, blue: 0.74)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing),
-            for: .widget
-        )
-        .foregroundStyle(.white)
+        .containerBackground(for: .widget) {
+            if let img = coverImage {
+                Image(uiImage: img)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .overlay(Color.black.opacity(0.5))
+            } else {
+                LinearGradient(
+                    colors: [Color(red: 0.12, green: 0.22, blue: 0.54),
+                             Color(red: 0.15, green: 0.27, blue: 0.74)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        }
         .widgetURL(URL(string: "singopkoelsch://song/\(song.id)"))
     }
 }
 
 private struct MediumView: View {
     let song: RandomSong
+    let coverImage: UIImage?
 
     var body: some View {
         HStack(spacing: 14) {
-            // Left: cover placeholder
+            // Left: album cover
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color.white.opacity(0.15))
-                Image(systemName: "music.note")
-                    .font(.system(size: 28))
-                    .foregroundStyle(.white.opacity(0.6))
+                if let img = coverImage {
+                    Image(uiImage: img)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                } else {
+                    Image(systemName: "music.note")
+                        .font(.system(size: 28))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
             }
             .frame(width: 72, height: 72)
 
@@ -168,9 +199,12 @@ private struct MediumView: View {
         }
         .padding(16)
         .containerBackground(
-            LinearGradient(colors: [Color(red: 0.12, green: 0.22, blue: 0.54),
-                                    Color(red: 0.15, green: 0.27, blue: 0.74)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing),
+            LinearGradient(
+                colors: [Color(red: 0.12, green: 0.22, blue: 0.54),
+                         Color(red: 0.15, green: 0.27, blue: 0.74)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
             for: .widget
         )
         .foregroundStyle(.white)
