@@ -16,18 +16,26 @@
             "tintColor": "DC2626",
             "category": "music",
             "screenshotURLs": [],
-            "version": "1.8",
+            "version": "1.9",
             "versionDate": "2026-06-13",
-            "versionDescription": "Widget öffnet Song direkt in der App – aktualisiert sich stündlich.",
+            "versionDescription": "Widget lädt zuverlässig Songs und öffnet sie direkt in der App.",
             "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-            "size": 393027,
+            "size": 397489,
             "versions": [
+                {
+                    "version": "1.9",
+                    "date": "2026-06-13",
+                    "localizedDescription": "Widget lädt zuverlässig Songs und öffnet sie direkt in der App.",
+                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+                    "size": 397489,
+                    "minOSVersion": "17.0"
+                },
                 {
                     "version": "1.8",
                     "date": "2026-06-13",
                     "localizedDescription": "Widget öffnet Song direkt in der App – aktualisiert sich stündlich.",
                     "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 393027,
+                    "size": 397489,
                     "minOSVersion": "17.0"
                 },
                 {

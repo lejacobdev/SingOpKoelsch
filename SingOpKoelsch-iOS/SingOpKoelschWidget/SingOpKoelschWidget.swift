@@ -46,7 +46,9 @@ struct SongProvider: TimelineProvider {
         guard let url = URL(string: "https://singopkoelsch.de/api/songs/random") else {
             completion(SongEntry(date: .now, song: nil)); return
         }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        let cfg = URLSessionConfiguration.ephemeral
+        cfg.timeoutIntervalForRequest = 20
+        URLSession(configuration: cfg).dataTask(with: url) { data, _, _ in
             var song: RandomSong? = nil
             if let data {
                 struct Envelope: Decodable { let ok: Bool; let data: RandomSong? }
