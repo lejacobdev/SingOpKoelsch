@@ -37,8 +37,8 @@ struct SongProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<SongEntry>) -> Void) {
         fetchRandom { entry in
-            // Refresh every hour
-            let next = Calendar.current.date(byAdding: .hour, value: 1, to: .now)!
+            // Refresh every minute
+            let next = Calendar.current.date(byAdding: .minute, value: 1, to: .now)!
             completion(Timeline(entries: [entry], policy: .after(next)))
         }
     }
