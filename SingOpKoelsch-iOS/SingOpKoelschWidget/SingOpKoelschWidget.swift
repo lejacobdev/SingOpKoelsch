@@ -1,5 +1,6 @@
 import WidgetKit
 import SwiftUI
+import AppIntents
 
 // MARK: - Model
 
@@ -22,53 +23,59 @@ struct SongEntry: TimelineEntry {
     let date: Date
     let song: RandomSong?
     let coverImage: UIImage?
+    let mode: WidgetSongMode
 }
 
 // MARK: - Provider
 
-struct SongProvider: TimelineProvider {
+struct SongProvider: AppIntentTimelineProvider {
+    private let appGroup = "group.de.singopkoelsch.app"
+    private let tokenKey = "widget_auth_token"
+
     func placeholder(in context: Context) -> SongEntry {
-        SongEntry(date: .now, song: RandomSong(id: 0, title: "Kölsche Klassiker", bandName: "Bläck Fööss", coverUrl: nil), coverImage: nil)
+        SongEntry(date: .now,
+                  song: RandomSong(id: 0, title: "Kölsche Klassiker", bandName: "Bläck Fööss", coverUrl: nil),
+                  coverImage: nil, mode: .all)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (SongEntry) -> Void) {
-        fetchRandom { completion($0) }
+    func snapshot(for configuration: SongWidgetIntent, in context: Context) async -> SongEntry {
+        await fetch(mode: configuration.mode)
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<SongEntry>) -> Void) {
-        fetchRandom { entry in
-            // Refresh every minute
-            let next = Calendar.current.date(byAdding: .minute, value: 1, to: .now)!
-            completion(Timeline(entries: [entry], policy: .after(next)))
+    func timeline(for configuration: SongWidgetIntent, in context: Context) async -> Timeline<SongEntry> {
+        let entry = await fetch(mode: configuration.mode)
+        let next = Calendar.current.date(byAdding: .minute, value: 1, to: .now)!
+        return Timeline(entries: [entry], policy: .after(next))
+    }
+
+    private func fetch(mode: WidgetSongMode) async -> SongEntry {
+        var request: URLRequest
+
+        if mode == .favorites,
+           let token = UserDefaults(suiteName: appGroup)?.string(forKey: tokenKey) {
+            request = URLRequest(url: URL(string: "https://singopkoelsch.de/api/songs/random/favorite")!)
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } else {
+            request = URLRequest(url: URL(string: "https://singopkoelsch.de/api/songs/random")!)
         }
-    }
+        request.timeoutInterval = 20
 
-    private func fetchRandom(completion: @escaping (SongEntry) -> Void) {
-        guard let url = URL(string: "https://singopkoelsch.de/api/songs/random") else {
-            completion(SongEntry(date: .now, song: nil, coverImage: nil)); return
+        do {
+            let cfg = URLSessionConfiguration.ephemeral
+            let session = URLSession(configuration: cfg)
+            let (data, _) = try await session.data(for: request)
+            struct Envelope: Decodable { let ok: Bool; let data: RandomSong? }
+            let song = (try? JSONDecoder().decode(Envelope.self, from: data))?.data
+
+            var coverImage: UIImage? = nil
+            if let coverUrlStr = song?.coverUrl, let coverUrl = URL(string: coverUrlStr) {
+                let (imgData, _) = try await session.data(from: coverUrl)
+                coverImage = UIImage(data: imgData)
+            }
+            return SongEntry(date: .now, song: song, coverImage: coverImage, mode: mode)
+        } catch {
+            return SongEntry(date: .now, song: nil, coverImage: nil, mode: mode)
         }
-        let cfg = URLSessionConfiguration.ephemeral
-        cfg.timeoutIntervalForRequest = 20
-        let session = URLSession(configuration: cfg)
-
-        session.dataTask(with: url) { data, _, _ in
-            var song: RandomSong? = nil
-            if let data {
-                struct Envelope: Decodable { let ok: Bool; let data: RandomSong? }
-                song = (try? JSONDecoder().decode(Envelope.self, from: data))?.data
-            }
-
-            // Fetch cover image if available
-            if let coverUrlStr = song?.coverUrl,
-               let coverUrl = URL(string: coverUrlStr) {
-                session.dataTask(with: coverUrl) { imgData, _, _ in
-                    let image = imgData.flatMap { UIImage(data: $0) }
-                    completion(SongEntry(date: .now, song: song, coverImage: image))
-                }.resume()
-            } else {
-                completion(SongEntry(date: .now, song: song, coverImage: nil))
-            }
-        }.resume()
     }
 }
 
@@ -81,9 +88,9 @@ struct SongWidgetEntryView: View {
     var body: some View {
         if let song = entry.song {
             switch family {
-            case .systemSmall:  SmallView(song: song, coverImage: entry.coverImage)
-            case .systemMedium: MediumView(song: song, coverImage: entry.coverImage)
-            default:            SmallView(song: song, coverImage: entry.coverImage)
+            case .systemSmall:  SmallView(song: song, coverImage: entry.coverImage, mode: entry.mode)
+            case .systemMedium: MediumView(song: song, coverImage: entry.coverImage, mode: entry.mode)
+            default:            SmallView(song: song, coverImage: entry.coverImage, mode: entry.mode)
             }
         } else {
             placeholderView
@@ -107,16 +114,24 @@ struct SongWidgetEntryView: View {
 private struct SmallView: View {
     let song: RandomSong
     let coverImage: UIImage?
+    let mode: WidgetSongMode
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer(minLength: 0)
             VStack(alignment: .leading, spacing: 3) {
-                Text("Zufallslied")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.75))
-                    .textCase(.uppercase)
-                    .kerning(0.5)
+                HStack(spacing: 4) {
+                    if mode == .favorites {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.white.opacity(0.75))
+                    }
+                    Text(mode == .favorites ? "Lieblingslied" : "Zufallslied")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.75))
+                        .textCase(.uppercase)
+                        .kerning(0.5)
+                }
                 Text(song.title)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white)
@@ -158,13 +173,14 @@ private struct SmallView: View {
 private struct MediumView: View {
     let song: RandomSong
     let coverImage: UIImage?
+    let mode: WidgetSongMode
 
-    private let appBg      = Color(red: 13/255,  green: 17/255,  blue: 23/255)   // #0d1117
-    private let surface    = Color(red: 28/255,  green: 33/255,  blue: 40/255)   // #1c2128
-    private let border     = Color(red: 51/255,  green: 65/255,  blue: 85/255)   // #334155
-    private let red        = Color(red: 220/255, green: 38/255,  blue: 38/255)   // #dc2626
-    private let textMuted  = Color(red: 148/255, green: 163/255, blue: 184/255)  // #94a3b8
-    private let textFaint  = Color(red: 100/255, green: 116/255, blue: 139/255)  // #64748b
+    private let appBg      = Color(red: 13/255,  green: 17/255,  blue: 23/255)
+    private let surface    = Color(red: 28/255,  green: 33/255,  blue: 40/255)
+    private let border     = Color(red: 51/255,  green: 65/255,  blue: 85/255)
+    private let red        = Color(red: 220/255, green: 38/255,  blue: 38/255)
+    private let textMuted  = Color(red: 148/255, green: 163/255, blue: 184/255)
+    private let textFaint  = Color(red: 100/255, green: 116/255, blue: 139/255)
 
     var body: some View {
         HStack(spacing: 14) {
@@ -203,6 +219,12 @@ private struct MediumView: View {
                     Text("Sing op Kölsch")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(textMuted)
+                    Spacer(minLength: 0)
+                    if mode == .favorites {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(red)
+                    }
                 }
 
                 Spacer(minLength: 6)
@@ -244,11 +266,11 @@ struct SingOpKoelschWidget: Widget {
     let kind = "SingOpKoelschWidget"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: SongProvider()) { entry in
+        AppIntentConfiguration(kind: kind, intent: SongWidgetIntent.self, provider: SongProvider()) { entry in
             SongWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("Sing op Kölsch")
-        .description("Zeigt täglich einen zufälligen kölschen Song.")
+        .description("Zufälliger Song oder Lieblingslied auf dem Homescreen.")
         .supportedFamilies([.systemSmall, .systemMedium])
         .contentMarginsDisabled()
     }

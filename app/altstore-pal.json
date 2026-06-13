@@ -19,18 +19,18 @@
             "tintColor": "DC2626",
             "category": "music",
             "screenshotURLs": [],
-            "version": "2.2",
+            "version": "2.3",
             "versionDate": "2026-06-13",
-            "versionDescription": "Medium-Widget neu gestaltet im App-Stil.",
+            "versionDescription": "Widget-Modus wählbar: Alle Songs oder Lieblingslieder.",
             "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-            "size": 401057,
+            "size": 404396,
             "versions": [
                 {
-                    "version": "2.2",
+                    "version": "2.3",
                     "date": "2026-06-13",
                     "localizedDescription": "Medium-Widget im App-Stil – dunkler Hintergrund, roter Akzent, Cover-Thumbnail links.",
                     "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 401057,
+                    "size": 404396,
                     "minOSVersion": "17.0"
                 },
                 {

@@ -12,8 +12,14 @@ final class AuthManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private let api = APIClient.shared
 
+    private static let appGroup = "group.de.singopkoelsch.app"
+    private static let widgetTokenKey = "widget_auth_token"
+
     init() {
-        isLoggedIn = Keychain.load(key: "auth_token") != nil
+        if let token = Keychain.load(key: "auth_token") {
+            isLoggedIn = true
+            UserDefaults(suiteName: Self.appGroup)?.set(token, forKey: Self.widgetTokenKey)
+        }
 
         NotificationCenter.default.publisher(for: .sessionExpired)
             .receive(on: RunLoop.main)
@@ -30,6 +36,7 @@ final class AuthManager: ObservableObject {
         defer { isLoading = false }
         let resp = try await api.login(email: email, password: password)
         Keychain.save(resp.token, key: "auth_token")
+        UserDefaults(suiteName: Self.appGroup)?.set(resp.token, forKey: Self.widgetTokenKey)
         isLoggedIn = true
         currentUser = AppUser(
             userId: resp.userId,
@@ -53,6 +60,7 @@ final class AuthManager: ObservableObject {
         }
         Keychain.delete(key: "auth_token")
         Keychain.delete(key: "device_token")
+        UserDefaults(suiteName: Self.appGroup)?.removeObject(forKey: Self.widgetTokenKey)
         currentUser = nil
         isLoggedIn = false
     }

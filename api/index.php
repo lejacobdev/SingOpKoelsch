@@ -213,6 +213,59 @@ route('GET', ['songs'], function() use ($conn) {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// RANDOM FAVORITE SONG  (widget – favorites mode)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+route('GET', ['songs', 'random', 'favorite'], function() use ($conn) {
+    $song = null;
+
+    // Try token from Authorization header
+    $headers = function_exists('getallheaders') ? getallheaders() : [];
+    $auth = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    if (preg_match('/^Bearer\s+(.+)$/i', $auth, $m)) {
+        $token = $m[1];
+        $stmt = $conn->prepare(
+            "SELECT s.user_id FROM singopkoelsch_sessions s
+             WHERE s.token = ? AND (s.expires_at IS NULL OR s.expires_at > NOW())
+             LIMIT 1"
+        );
+        $stmt->bind_param("s", $token);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if ($row) {
+            $userId = (int)$row['user_id'];
+            $result = $conn->query(
+                "SELECT l.id, l.title, b.band_name, l.cover_url
+                 FROM singopkoelsch_favorites f
+                 JOIN singopkoelsch_lyrics l ON l.id = f.lyrics_id
+                 LEFT JOIN singopkoelsch_bands b ON b.band_id = l.band_id
+                 WHERE f.user_id = $userId AND l.lyrics IS NOT NULL AND l.lyrics != ''
+                 ORDER BY RAND() LIMIT 1"
+            );
+            $song = $result ? $result->fetch_assoc() : null;
+        }
+    }
+
+    // Fallback: random from all songs
+    if (!$song) {
+        $result = $conn->query(
+            "SELECT l.id, l.title, b.band_name, l.cover_url
+             FROM singopkoelsch_lyrics l
+             LEFT JOIN singopkoelsch_bands b ON b.band_id = l.band_id
+             WHERE l.lyrics IS NOT NULL AND l.lyrics != ''
+             ORDER BY RAND() LIMIT 1"
+        );
+        $song = $result ? $result->fetch_assoc() : null;
+    }
+
+    if (!$song) json_err('No songs found', 404);
+    $song['id'] = (int)$song['id'];
+    json_ok($song);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // RANDOM SONG  (widget / random-play)
 // ═══════════════════════════════════════════════════════════════════════════════
 
