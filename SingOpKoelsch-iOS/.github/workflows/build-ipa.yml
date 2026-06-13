@@ -30,7 +30,7 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Archive (iOS + Widget, unsigned)
+      - name: Archive (ad-hoc signed for SideStore)
         run: |
           set -o pipefail
           xcodebuild \
@@ -39,9 +39,10 @@ jobs:
             -destination "generic/platform=iOS" \
             -archivePath build/SingOpKoelsch.xcarchive \
             archive \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGNING_ALLOWED=YES \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
             DEVELOPMENT_TEAM="" \
             SKIP_INSTALL=NO \
             2>&1 | grep -E "error:|Build |Compiling|Linking|Archive|FAILED|SUCCEEDED" \
@@ -51,27 +52,28 @@ jobs:
               -scheme SingOpKoelsch -configuration Release \
               -destination "generic/platform=iOS" \
               -archivePath build/SingOpKoelsch.xcarchive archive \
-              CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM="" SKIP_INSTALL=NO
+              CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=YES \
+              CODE_SIGNING_ALLOWED=YES AD_HOC_CODE_SIGNING_ALLOWED=YES \
+              DEVELOPMENT_TEAM="" SKIP_INSTALL=NO
           }
 
-      - name: Package IPA
+      - name: Package IPA (strip Watch + Extensions for SideStore)
         run: |
           APP=$(find build/SingOpKoelsch.xcarchive/Products -name "*.app" | grep -v Watch | head -1)
           echo "App: $APP"
+          # Strip embedded Watch app and PlugIns so SideStore can sign cleanly
+          rm -rf "$APP/Watch" "$APP/PlugIns"
           mkdir -p build/ipa/Payload
           cp -r "$APP" build/ipa/Payload/
           cd build/ipa && zip -qr ../SingOpKoelsch.ipa Payload/
           echo "IPA: $(du -sh ../SingOpKoelsch.ipa | cut -f1)"
-          unzip -l ../SingOpKoelsch.ipa | grep -E "\.appex|Assets\.car" | head -20
-          unzip -l ../SingOpKoelsch.ipa | grep -i widget \
-            && echo "✅ Widget INCLUDED" || echo "⚠️  Widget NOT found"
+          unzip -l ../SingOpKoelsch.ipa | head -20
 
       - name: Upload IPA artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: SingOpKoelsch-v1.6-run${{ github.run_number }}
+          name: SingOpKoelsch-v1.7-run${{ github.run_number }}
           path: SingOpKoelsch-iOS/build/SingOpKoelsch.ipa
           retention-days: 90
 
