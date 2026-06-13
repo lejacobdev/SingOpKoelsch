@@ -61,12 +61,11 @@ jobs:
         run: |
           APP=$(find build/SingOpKoelsch.xcarchive/Products -name "*.app" | grep -v Watch | head -1)
           echo "App: $APP"
-          # Re-sign Watch app with explicit ad-hoc identity so SideStore doesn't crash
+          # Remove Watch code signature so SideStore skips re-signing it
           if [ -d "$APP/Watch" ]; then
-            find "$APP/Watch" -name "*.app" | while read WAPP; do
-              codesign --force --sign - --timestamp=none "$WAPP"
-            done
-            echo "Watch re-signed"
+            find "$APP/Watch" -name "_CodeSignature" -type d -exec rm -rf {} + 2>/dev/null || true
+            echo "Watch _CodeSignature removed"
+            ls -la "$APP/Watch/SingOpKoelschWatch.app/" || true
           fi
           mkdir -p build/ipa/Payload
           cp -r "$APP" build/ipa/Payload/

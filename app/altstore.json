@@ -16,16 +16,16 @@
             "tintColor": "DC2626",
             "category": "music",
             "screenshotURLs": [],
-            "version": "2.7",
+            "version": "2.8",
             "versionDate": "2026-06-14",
-            "versionDescription": "Watch-App neu signiert – SideStore-Crash beim Installieren behoben.",
+            "versionDescription": "Watch-App ohne Signatur – SideStore überspringt Re-Signing.",
             "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
             "size": 652061,
             "versions": [
                 {
-                    "version": "2.7",
+                    "version": "2.8",
                     "date": "2026-06-14",
-                    "localizedDescription": "Watch-App neu signiert – SideStore-Crash beim Installieren behoben.",
+                    "localizedDescription": "Watch-App ohne Signatur – SideStore überspringt Re-Signing.",
                     "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
                     "size": 652061,
                     "minOSVersion": "17.0"
