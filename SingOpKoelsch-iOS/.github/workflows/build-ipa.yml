@@ -9,6 +9,9 @@ jobs:
   build:
     runs-on: macos-15
     timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: SingOpKoelsch-iOS
 
     steps:
       - name: Checkout
@@ -18,9 +21,11 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
+        working-directory: .
 
       - name: Install XcodeGen
         run: brew install xcodegen
+        working-directory: .
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -39,10 +44,10 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             DEVELOPMENT_TEAM="" \
             SKIP_INSTALL=NO \
-            2>&1 | grep -E "error:|warning: |Build |Compiling|Linking|Archive|FAILED|SUCCEEDED" \
+            2>&1 | grep -E "error:|Build |Compiling|Linking|Archive|FAILED|SUCCEEDED" \
                  | grep -v "^$" || true
           [ -d "build/SingOpKoelsch.xcarchive" ] || {
-            echo "Archive not found — full log:"; xcodebuild \
+            echo "Archive missing — full log:"; xcodebuild \
               -scheme SingOpKoelsch -configuration Release \
               -destination "generic/platform=iOS" \
               -archivePath build/SingOpKoelsch.xcarchive archive \
@@ -62,29 +67,33 @@ jobs:
           unzip -l ../SingOpKoelsch.ipa | grep -i widget \
             && echo "✅ Widget INCLUDED" || echo "⚠️  Widget NOT found"
 
+      - name: Upload IPA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SingOpKoelsch-v1.6-run${{ github.run_number }}
+          path: SingOpKoelsch-iOS/build/SingOpKoelsch.ipa
+          retention-days: 90
+
       - name: Deploy to singopkoelsch.de
         if: github.ref == 'refs/heads/main'
+        working-directory: .
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
           if [ -z "$DEPLOY_KEY" ]; then
-            echo "No DEPLOY_SSH_KEY set — skipping deploy"
+            echo "No DEPLOY_SSH_KEY — skipping deploy"
             exit 0
           fi
+          # Strip any whitespace/newlines from secrets
+          HOST=$(printf '%s' "$DEPLOY_HOST" | tr -d '\r\n\t ')
           echo "$DEPLOY_KEY" > /tmp/dk && chmod 600 /tmp/dk
-          IPA_SIZE=$(wc -c < build/SingOpKoelsch.ipa | tr -d ' ')
+          IPA_SIZE=$(wc -c < SingOpKoelsch-iOS/build/SingOpKoelsch.ipa | tr -d ' ')
           scp -i /tmp/dk -o StrictHostKeyChecking=no \
-            build/SingOpKoelsch.ipa \
-            "${DEPLOY_HOST}:/var/www/html8/app/SingOpKoelsch.ipa"
-          ssh -i /tmp/dk -o StrictHostKeyChecking=no "$DEPLOY_HOST" \
+            SingOpKoelsch-iOS/build/SingOpKoelsch.ipa \
+            "${HOST}:/var/www/html8/app/SingOpKoelsch.ipa"
+          ssh -i /tmp/dk -o StrictHostKeyChecking=no "$HOST" \
             "/var/www/html8/scripts/deploy_ipa.sh $IPA_SIZE"
           rm /tmp/dk
-          echo "✅ IPA live at https://singopkoelsch.de/app/SingOpKoelsch.ipa"
-
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: SingOpKoelsch-v1.6-run${{ github.run_number }}
-          path: build/SingOpKoelsch.ipa
-          retention-days: 90
+          echo "✅ Live: https://singopkoelsch.de/app/SingOpKoelsch.ipa"

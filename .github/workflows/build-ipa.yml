@@ -67,6 +67,14 @@ jobs:
           unzip -l ../SingOpKoelsch.ipa | grep -i widget \
             && echo "✅ Widget INCLUDED" || echo "⚠️  Widget NOT found"
 
+      - name: Upload IPA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SingOpKoelsch-v1.6-run${{ github.run_number }}
+          path: SingOpKoelsch-iOS/build/SingOpKoelsch.ipa
+          retention-days: 90
+
       - name: Deploy to singopkoelsch.de
         if: github.ref == 'refs/heads/main'
         working-directory: .
@@ -78,19 +86,14 @@ jobs:
             echo "No DEPLOY_SSH_KEY — skipping deploy"
             exit 0
           fi
+          # Strip any whitespace/newlines from secrets
+          HOST=$(printf '%s' "$DEPLOY_HOST" | tr -d '\r\n\t ')
           echo "$DEPLOY_KEY" > /tmp/dk && chmod 600 /tmp/dk
           IPA_SIZE=$(wc -c < SingOpKoelsch-iOS/build/SingOpKoelsch.ipa | tr -d ' ')
           scp -i /tmp/dk -o StrictHostKeyChecking=no \
             SingOpKoelsch-iOS/build/SingOpKoelsch.ipa \
-            "${DEPLOY_HOST}:/var/www/html8/app/SingOpKoelsch.ipa"
-          ssh -i /tmp/dk -o StrictHostKeyChecking=no "$DEPLOY_HOST" \
+            "${HOST}:/var/www/html8/app/SingOpKoelsch.ipa"
+          ssh -i /tmp/dk -o StrictHostKeyChecking=no "$HOST" \
             "/var/www/html8/scripts/deploy_ipa.sh $IPA_SIZE"
           rm /tmp/dk
           echo "✅ Live: https://singopkoelsch.de/app/SingOpKoelsch.ipa"
-
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: SingOpKoelsch-v1.6-run${{ github.run_number }}
-          path: SingOpKoelsch-iOS/build/SingOpKoelsch.ipa
-          retention-days: 90
