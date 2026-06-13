@@ -3,7 +3,7 @@ name: SingOpKoelsch
 options:
   bundleIdPrefix: de.singopkoelsch
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "17.0"
     watchOS: "9.0"
   defaultConfig: Debug
   xcodeVersion: "16.0"
@@ -19,7 +19,7 @@ targets:
   SingOpKoelsch:
     type: application
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "17.0"
 
     sources:
       - path: SingOpKoelsch

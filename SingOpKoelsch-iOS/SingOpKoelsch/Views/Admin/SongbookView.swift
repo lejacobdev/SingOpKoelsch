@@ -67,76 +67,87 @@ struct SongbookView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if vm.isLoadingSongs {
-                    ProgressView("Lade Lieder…").tint(Theme.koelschRed)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List {
-                        if let err = vm.error { ErrorBanner(message: err).listRowBackground(Color.clear).listRowInsets(.init()) }
-
-                        Section {
-                            HStack {
-                                Text("\(vm.selectedIds.count) ausgewaehlt")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                                Button(vm.selectedIds.count == vm.allSongs.count ? "Alle abwaehlen" : "Alle auswaehlen") {
-                                    vm.toggleAll()
-                                }
-                                .font(.subheadline)
-                                .foregroundStyle(Theme.koelschRed)
+            content
+                .navigationTitle("Liederbuch")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { Task { await vm.export() } } label: {
+                            if vm.isExporting {
+                                ProgressView().tint(Theme.koelschRed)
+                            } else {
+                                Label("Exportieren", systemImage: "square.and.arrow.up")
                             }
                         }
+                        .disabled(vm.selectedIds.isEmpty || vm.isExporting)
+                    }
+                }
+                .onChange(of: vm.exportedFileURL) { _, url in
+                    if url != nil { showShareSheet = true }
+                }
+                .sheet(isPresented: $showShareSheet, onDismiss: { vm.exportedFileURL = nil }) {
+                    if let url = vm.exportedFileURL { ShareSheet(url: url) }
+                }
+        }
+        .task { await vm.loadSongs() }
+    }
 
-                        ForEach(vm.filtered) { song in
-                            Button {
-                                if vm.selectedIds.contains(song.id) {
-                                    vm.selectedIds.remove(song.id)
-                                } else {
-                                    vm.selectedIds.insert(song.id)
-                                }
-                            } label: {
-                                HStack {
-                                    Image(systemName: vm.selectedIds.contains(song.id) ? "checkmark.circle.fill" : "circle")
-                                        .foregroundStyle(vm.selectedIds.contains(song.id) ? Theme.koelschRed : .secondary)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(song.title).font(.subheadline.bold()).foregroundStyle(.primary)
-                                        Text(song.bandName).font(.caption).foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                        }
+    @ViewBuilder
+    private var content: some View {
+        if vm.isLoadingSongs {
+            ProgressView("Lade Lieder…").tint(Theme.koelschRed)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            songList
+        }
+    }
+
+    private var songList: some View {
+        List {
+            if let err = vm.error {
+                ErrorBanner(message: err).listRowBackground(Color.clear).listRowInsets(.init())
+            }
+            Section {
+                HStack {
+                    Text("\(vm.selectedIds.count) ausgewaehlt")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                    Spacer()
+                    Button(vm.selectedIds.count == vm.allSongs.count ? "Alle abwaehlen" : "Alle auswaehlen") {
+                        vm.toggleAll()
                     }
-                    .listStyle(.insetGrouped)
-                    .searchable(text: $vm.search, prompt: "Suchen…")
+                    .font(.subheadline).foregroundStyle(Theme.koelschRed)
                 }
             }
-            .navigationTitle("Liederbuch")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { await vm.export() }
-                    } label: {
-                        if vm.isExporting {
-                            ProgressView().tint(Theme.koelschRed)
-                        } else {
-                            Label("Exportieren", systemImage: "square.and.arrow.up")
-                        }
+            ForEach(vm.filtered) { song in
+                SongbookRowButton(song: song, isSelected: vm.selectedIds.contains(song.id)) {
+                    if vm.selectedIds.contains(song.id) {
+                        vm.selectedIds.remove(song.id)
+                    } else {
+                        vm.selectedIds.insert(song.id)
                     }
-                    .disabled(vm.selectedIds.isEmpty || vm.isExporting)
-                }
-            }
-            .onChange(of: vm.exportedFileURL) { _, url in
-                if url != nil { showShareSheet = true }
-            }
-            .sheet(isPresented: $showShareSheet, onDismiss: { vm.exportedFileURL = nil }) {
-                if let url = vm.exportedFileURL {
-                    ShareSheet(url: url)
                 }
             }
         }
-        .task { await vm.loadSongs() }
+        .listStyle(.insetGrouped)
+        .searchable(text: $vm.search, prompt: "Suchen…")
+    }
+}
+
+private struct SongbookRowButton: View {
+    let song: Song
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? Theme.koelschRed : .secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(song.title).font(.subheadline.bold()).foregroundStyle(.primary)
+                    Text(song.bandName).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
     }
 }
 

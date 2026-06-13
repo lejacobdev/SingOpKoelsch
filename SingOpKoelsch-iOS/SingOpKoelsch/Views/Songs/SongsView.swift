@@ -45,59 +45,60 @@ struct SongsView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if vm.songs.isEmpty && !vm.isLoading {
-                    EmptyStateView(
-                        icon: "music.note.list",
-                        title: vm.searchText.isEmpty ? "Keine Lieder" : "Keine Treffer",
-                        subtitle: vm.searchText.isEmpty ? "Bitte später erneut versuchen." : "Versuch einen anderen Suchbegriff."
-                    )
-                } else {
-                    List {
-                        if let err = vm.error {
-                            ErrorBanner(message: err)
-                                .listRowBackground(Color.clear)
-                                .listRowInsets(.init())
-                        }
-                        ForEach(vm.songs) { song in
-                            NavigationLink(destination: SongDetailView(songId: song.id, title: song.title)) {
-                                SongRowView(song: song)
-                            }
-                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                            .listRowBackground(Theme.card)
-                            .onAppear {
-                                if song.id == vm.songs.last?.id {
-                                    Task { await vm.load() }
-                                }
-                            }
-                        }
-                        if vm.isLoading { LoadingRow() }
-                    }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
-                }
-            }
-            .background(Theme.bg.ignoresSafeArea())
-            .navigationTitle("Lieder")
-            .searchable(text: $vm.searchText, prompt: "Titel, Band, Text …")
-            .onChange(of: vm.searchText) { vm.onSearchChange() }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    KoelschLogo(size: 28)
-                }
-                if auth.currentUser?.role == "admin" || auth.currentUser?.role == "trusted" {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { showAddSong = true } label: {
-                            Image(systemName: "plus")
+            content
+                .background(Theme.bg.ignoresSafeArea())
+                .navigationTitle("Lieder")
+                .searchable(text: $vm.searchText, prompt: "Titel, Band, Text …")
+                .onChange(of: vm.searchText) { vm.onSearchChange() }
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) { KoelschLogo(size: 28) }
+                    if auth.currentUser?.role == "admin" || auth.currentUser?.role == "trusted" {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { showAddSong = true } label: { Image(systemName: "plus") }
                         }
                     }
                 }
-            }
-            .sheet(isPresented: $showAddSong, onDismiss: { Task { await vm.load(reset: true) } }) {
-                AddEditSongView(mode: .add)
-            }
+                .sheet(isPresented: $showAddSong, onDismiss: { Task { await vm.load(reset: true) } }) {
+                    AddEditSongView(mode: .add)
+                }
         }
         .task { await vm.load() }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if vm.songs.isEmpty && !vm.isLoading {
+            EmptyStateView(
+                icon: "music.note.list",
+                title: vm.searchText.isEmpty ? "Keine Lieder" : "Keine Treffer",
+                subtitle: vm.searchText.isEmpty ? "Bitte später erneut versuchen." : "Versuch einen anderen Suchbegriff."
+            )
+        } else {
+            songList
+        }
+    }
+
+    private var songList: some View {
+        List {
+            if let err = vm.error {
+                ErrorBanner(message: err)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(.init())
+            }
+            ForEach(vm.songs) { song in
+                NavigationLink(destination: SongDetailView(songId: song.id, title: song.title)) {
+                    SongRowView(song: song)
+                }
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .listRowBackground(Theme.card)
+                .onAppear {
+                    if song.id == vm.songs.last?.id { Task { await vm.load() } }
+                }
+            }
+            if vm.isLoading { LoadingRow() }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
     }
 }
 
