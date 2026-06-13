@@ -36,14 +36,39 @@ if (file_exists($tmp) && filesize($tmp) > 10000) {
     move_uploaded_file($upload, $dest);
 }
 
-$size = filesize($dest);
+$size    = filesize($dest);
+$version = trim($_POST['version'] ?? '');
+$desc    = trim($_POST['description'] ?? '');
+$today   = date('Y-m-d');
 
 foreach (['altstore.json', 'altstore-pal.json'] as $f) {
     $path = __DIR__ . '/' . $f;
     $data = json_decode(file_get_contents($path), true);
     $data['apps'][0]['size'] = $size;
-    if (!empty($data['apps'][0]['versions'][0])) {
-        $data['apps'][0]['versions'][0]['size'] = $size;
+    if ($version) {
+        $data['apps'][0]['version']            = $version;
+        $data['apps'][0]['versionDate']        = $today;
+        $data['apps'][0]['versionDescription'] = $desc ?: $version;
+        // Prepend new entry to versions array
+        $newEntry = [
+            'version'              => $version,
+            'date'                 => $today,
+            'localizedDescription' => $desc ?: $version,
+            'downloadURL'          => 'https://singopkoelsch.de/app/SingOpKoelsch.ipa',
+            'size'                 => $size,
+            'minOSVersion'         => '17.0',
+        ];
+        // Only prepend if version differs from current top entry
+        if (empty($data['apps'][0]['versions'][0]['version']) ||
+            $data['apps'][0]['versions'][0]['version'] !== $version) {
+            array_unshift($data['apps'][0]['versions'], $newEntry);
+        } else {
+            $data['apps'][0]['versions'][0]['size'] = $size;
+        }
+    } else {
+        if (!empty($data['apps'][0]['versions'][0])) {
+            $data['apps'][0]['versions'][0]['size'] = $size;
+        }
     }
     file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 }

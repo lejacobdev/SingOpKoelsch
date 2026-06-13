@@ -85,9 +85,13 @@ jobs:
             echo "No DEPLOY_TOKEN — skipping deploy"
             exit 0
           fi
+          VERSION=$(grep 'CFBundleShortVersionString' SingOpKoelsch-iOS/SingOpKoelsch/Info.plist | sed -n 's/.*<string>\(.*\)<\/string>.*/\1/p' | head -1)
+          echo "Deploying version $VERSION"
           curl -f -X POST \
             -H "X-Deploy-Token: $DEPLOY_TOKEN" \
             -F "ipa=@SingOpKoelsch-iOS/build/SingOpKoelsch.ipa" \
+            -F "version=$VERSION" \
+            -F "description=Version $VERSION" \
             https://singopkoelsch.de/app/deploy.php
           echo ""
           echo "✅ Live: https://singopkoelsch.de/app/SingOpKoelsch.ipa"
