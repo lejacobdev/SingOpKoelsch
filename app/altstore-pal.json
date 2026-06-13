@@ -19,18 +19,18 @@
             "tintColor": "DC2626",
             "category": "music",
             "screenshotURLs": [],
-            "version": "2.1",
+            "version": "2.2",
             "versionDate": "2026-06-13",
-            "versionDescription": "Widget aktualisiert sich jede Minute – Antippen lädt sofort einen neuen Song.",
+            "versionDescription": "Medium-Widget neu gestaltet im App-Stil.",
             "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-            "size": 400848,
+            "size": 401057,
             "versions": [
                 {
-                    "version": "2.1",
+                    "version": "2.2",
                     "date": "2026-06-13",
-                    "localizedDescription": "Widget aktualisiert sich jede Minute – Antippen lädt sofort einen neuen Song mit Cover.",
+                    "localizedDescription": "Medium-Widget im App-Stil – dunkler Hintergrund, roter Akzent, Cover-Thumbnail links.",
                     "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 400848,
+                    "size": 401057,
                     "minOSVersion": "17.0"
                 },
                 {
