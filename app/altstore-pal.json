@@ -23,14 +23,14 @@
             "versionDate": "2026-06-14",
             "versionDescription": "Favoriten-Widget: Token-Fallback via Keychain, Watch-App wieder aktiv.",
             "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-            "size": 652041,
+            "size": 652028,
             "versions": [
                 {
                     "version": "2.4",
                     "date": "2026-06-14",
                     "localizedDescription": "Favoriten-Widget: Token-Fallback via Keychain, Watch-App wieder aktiv.",
                     "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 652041,
+                    "size": 652028,
                     "minOSVersion": "17.0"
                 },
                 {
