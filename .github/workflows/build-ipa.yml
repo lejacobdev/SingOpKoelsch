@@ -61,8 +61,8 @@ jobs:
         run: |
           APP=$(find build/SingOpKoelsch.xcarchive/Products -name "*.app" | grep -v Watch | head -1)
           echo "App: $APP"
-          # Strip embedded Watch app and PlugIns so SideStore can sign cleanly
-          rm -rf "$APP/Watch" "$APP/PlugIns"
+          # Strip embedded Watch app — SideStore kann es nicht signieren
+          rm -rf "$APP/Watch"
           mkdir -p build/ipa/Payload
           cp -r "$APP" build/ipa/Payload/
           cd build/ipa && zip -qr ../SingOpKoelsch.ipa Payload/
