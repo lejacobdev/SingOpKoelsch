@@ -39,39 +39,50 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             DEVELOPMENT_TEAM="" \
             SKIP_INSTALL=NO \
-            2>&1 | grep -E "error:|warning:|Build|Compiling|Linking|Archive" | grep -v "note:" || true
-          # Re-run without filter if archive not created
-          if [ ! -d "build/SingOpKoelsch.xcarchive" ]; then
-            xcodebuild \
-              -scheme SingOpKoelsch \
-              -configuration Release \
+            2>&1 | grep -E "error:|warning: |Build |Compiling|Linking|Archive|FAILED|SUCCEEDED" \
+                 | grep -v "^$" || true
+          [ -d "build/SingOpKoelsch.xcarchive" ] || {
+            echo "Archive not found — full log:"; xcodebuild \
+              -scheme SingOpKoelsch -configuration Release \
               -destination "generic/platform=iOS" \
-              -archivePath build/SingOpKoelsch.xcarchive \
-              archive \
-              CODE_SIGN_IDENTITY="" \
-              CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO \
-              DEVELOPMENT_TEAM="" \
-              SKIP_INSTALL=NO
-          fi
+              -archivePath build/SingOpKoelsch.xcarchive archive \
+              CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM="" SKIP_INSTALL=NO
+          }
 
       - name: Package IPA
         run: |
           APP=$(find build/SingOpKoelsch.xcarchive/Products -name "*.app" | grep -v Watch | head -1)
-          echo "App bundle: $APP"
+          echo "App: $APP"
           mkdir -p build/ipa/Payload
           cp -r "$APP" build/ipa/Payload/
           cd build/ipa && zip -qr ../SingOpKoelsch.ipa Payload/
           echo "IPA: $(du -sh ../SingOpKoelsch.ipa | cut -f1)"
-          echo ""
-          echo "Key contents:"
-          unzip -l ../SingOpKoelsch.ipa | grep -E "\.appex|AppIcon|Assets\.car" | head -20
-          echo ""
+          unzip -l ../SingOpKoelsch.ipa | grep -E "\.appex|Assets\.car" | head -20
           unzip -l ../SingOpKoelsch.ipa | grep -i widget \
-            && echo "✅ Widget INCLUDED" \
-            || echo "⚠️  Widget NOT found in IPA"
+            && echo "✅ Widget INCLUDED" || echo "⚠️  Widget NOT found"
 
-      - name: Upload IPA
+      - name: Deploy to singopkoelsch.de
+        if: github.ref == 'refs/heads/main'
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo "No DEPLOY_SSH_KEY set — skipping deploy"
+            exit 0
+          fi
+          echo "$DEPLOY_KEY" > /tmp/dk && chmod 600 /tmp/dk
+          IPA_SIZE=$(wc -c < build/SingOpKoelsch.ipa | tr -d ' ')
+          scp -i /tmp/dk -o StrictHostKeyChecking=no \
+            build/SingOpKoelsch.ipa \
+            "${DEPLOY_HOST}:/var/www/html8/app/SingOpKoelsch.ipa"
+          ssh -i /tmp/dk -o StrictHostKeyChecking=no "$DEPLOY_HOST" \
+            "/var/www/html8/scripts/deploy_ipa.sh $IPA_SIZE"
+          rm /tmp/dk
+          echo "✅ IPA live at https://singopkoelsch.de/app/SingOpKoelsch.ipa"
+
+      - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: SingOpKoelsch-v1.6-run${{ github.run_number }}
