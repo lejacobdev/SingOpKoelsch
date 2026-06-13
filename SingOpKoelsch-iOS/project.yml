@@ -1,0 +1,124 @@
+name: SingOpKoelsch
+
+options:
+  bundleIdPrefix: de.singopkoelsch
+  deploymentTarget:
+    iOS: "16.0"
+    watchOS: "9.0"
+  defaultConfig: Debug
+  xcodeVersion: "15"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    ENABLE_PREVIEWS: "YES"
+    DEVELOPMENT_TEAM: ""          # ← paste your 10-char Apple Team ID here
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  SingOpKoelsch:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+
+    sources:
+      - path: SingOpKoelsch
+        excludes:
+          - "**/*.entitlements"
+
+    resources:
+      - SingOpKoelsch/Resources/Assets.xcassets
+
+    dependencies:
+      - target: SingOpKoelschWatch
+        embed: true
+        link: false
+      - target: SingOpKoelschWidget
+        embed: true
+        link: false
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.singopkoelsch.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        INFOPLIST_FILE: SingOpKoelsch/Info.plist
+        CODE_SIGN_ENTITLEMENTS: SingOpKoelsch/SingOpKoelsch.entitlements
+        TARGETED_DEVICE_FAMILY: "1,2"   # iPhone + iPad
+
+    info:
+      path: SingOpKoelsch/Info.plist
+      properties:
+        CFBundleDisplayName: "Sing op Kölsch"
+        CFBundleShortVersionString: "1.6"
+        CFBundleVersion: "6"
+        UILaunchScreen:
+          UIColorName: ""
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIBackgroundModes:
+          - remote-notification
+        NSCameraUsageDescription: "Wird für Profilbild-Uploads benötigt."
+        NSPhotoLibraryUsageDescription: "Wird für Profilbild-Uploads benötigt."
+        NSMicrophoneUsageDescription: "Wird für die Song-Erkennung via ShazamKit benötigt."
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+
+  SingOpKoelschWatch:
+    type: application
+    platform: watchOS
+    deploymentTarget: "9.0"
+
+    sources:
+      - path: SingOpKoelschWatch
+
+    resources:
+      - SingOpKoelschWatch/Resources/Assets.xcassets
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.singopkoelsch.app.watchkitapp
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_FILE: SingOpKoelschWatch/Info.plist
+        TARGETED_DEVICE_FAMILY: "4"   # Apple Watch
+
+    info:
+      path: SingOpKoelschWatch/Info.plist
+      properties:
+        CFBundleDisplayName: "Sing op Kölsch"
+        CFBundleShortVersionString: "1.6"
+        CFBundleVersion: "6"
+        WKApplication: true
+
+  SingOpKoelschWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+
+    sources:
+      - path: SingOpKoelschWidget
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.singopkoelsch.app.widget
+        INFOPLIST_FILE: SingOpKoelschWidget/Info.plist
+        TARGETED_DEVICE_FAMILY: "1,2"
+
+    info:
+      path: SingOpKoelschWidget/Info.plist
+      properties:
+        CFBundleDisplayName: "Sing op Kölsch Widget"
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        NSExtension:
+          NSExtensionPointIdentifier: "com.apple.widgetkit-extension"
+
+configs:
+  Debug:   debug
+  Release: release

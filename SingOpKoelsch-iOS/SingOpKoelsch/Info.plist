@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key>
+    <string>Sing op Kölsch</string>
+    <key>CFBundleIdentifier</key>
+    <string>de.singopkoelsch.app</string>
+    <key>CFBundleName</key>
+    <string>SingOpKoelsch</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.6</string>
+    <key>CFBundleVersion</key>
+    <string>6</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>WKAppBoundDomains</key>
+    <array>
+        <string>singopkoelsch.de</string>
+        <string>www.singopkoelsch.de</string>
+    </array>
+    <key>UILaunchScreen</key>
+    <dict/>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
+    </array>
+    <key>NSCameraUsageDescription</key>
+    <string>Wird für Profilbild-Uploads benötigt.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Wird für Profilbild-Uploads benötigt.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Wird für die Song-Erkennung via ShazamKit benötigt.</string>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+    </dict>
+</dict>
+</plist>

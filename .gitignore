@@ -1,0 +1,33 @@
+# Sensitive config (copy from config.php.example)
+config.php
+
+# VAPID keys
+/var/www/vapid.json
+
+# Large files & backups
+*.tar.gz
+*.zip
+*.xip
+
+# User uploads (not tracked in git)
+uploads/avatars/*
+uploads/photos/*
+!uploads/avatars/.gitkeep
+!uploads/photos/.gitkeep
+
+# Composer
+vendor/
+
+# Build artifacts (iOS)
+SingOpKoelsch-iOS/build/
+SingOpKoelsch-iOS/.build/
+SingOpKoelsch-iOS/xtool/
+
+# macOS
+.DS_Store
+
+# PHP logs
+*.log
+
+# Claude Code settings (may contain tokens)
+.claude/

@@ -1,0 +1,4 @@
+version: 1
+bundleID: de.singopkoelsch.app
+infoPath: SingOpKoelsch/Info.plist
+entitlementsPath: SingOpKoelsch/SingOpKoelsch.entitlements

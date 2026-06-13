@@ -1,0 +1,26 @@
+# Build artifacts
+build/
+.build/
+xtool/
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+*.xcarchive/
+DerivedData/
+*.ipa
+
+# Xcode XIP (huge download)
+*.xip
+
+# Swift PM
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output

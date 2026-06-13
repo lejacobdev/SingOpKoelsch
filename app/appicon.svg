@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- same red gradient as the home page "Kölsch" word -->
+    <linearGradient id="red" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0"    stop-color="#ef4444"/>
+      <stop offset="0.35" stop-color="#dc2626"/>
+      <stop offset="0.70" stop-color="#b91c1c"/>
+      <stop offset="1"    stop-color="#7f1d1d"/>
+    </linearGradient>
+    <!-- dark GitHub-style background like the page (#0d1117) -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b212b"/>
+      <stop offset="1" stop-color="#0d1117"/>
+    </linearGradient>
+    <!-- soft red halo (mimics the page's red drop-shadow) -->
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0"   stop-color="#dc2626" stop-opacity="0.45"/>
+      <stop offset="0.6" stop-color="#dc2626" stop-opacity="0.16"/>
+      <stop offset="1"   stop-color="#dc2626" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- background tile -->
+  <rect width="1024" height="1024" rx="230" ry="230" fill="url(#bg)"/>
+  <rect x="1" y="1" width="1022" height="1022" rx="229" ry="229" fill="none" stroke="#ffffff" stroke-opacity="0.05" stroke-width="2"/>
+
+  <!-- red halo behind the cathedral -->
+  <ellipse cx="512" cy="500" rx="360" ry="360" fill="url(#halo)"/>
+
+  <!-- Kölner Dom silhouette in the home-page red gradient -->
+  <g fill="url(#red)">
+    <!-- central nave gable -->
+    <polygon points="512,360 470,520 554,520"/>
+    <!-- facade body -->
+    <rect x="356" y="498" width="312" height="232" rx="6"/>
+    <!-- base plinth -->
+    <rect x="326" y="726" width="372" height="48" rx="12"/>
+    <!-- twin spires -->
+    <polygon points="398,236 356,520 440,520"/>
+    <polygon points="626,236 582,520 668,520"/>
+    <!-- finial crosses -->
+    <rect x="392" y="194" width="12" height="60"/>
+    <rect x="375" y="212" width="46" height="12"/>
+    <rect x="620" y="194" width="12" height="60"/>
+    <rect x="603" y="212" width="46" height="12"/>
+    <rect x="506" y="320" width="12" height="52"/>
+    <rect x="491" y="338" width="42" height="12"/>
+  </g>
+
+  <!-- dark cut-outs: portal + gothic windows so it reads as a cathedral -->
+  <g fill="#0d1117">
+    <path d="M512 598 q36 0 36 42 v92 h-72 v-92 q0-42 36-42 z"/>
+    <path d="M430 614 q17 0 17 24 v50 h-34 v-50 q0-24 17-24 z"/>
+    <path d="M594 614 q17 0 17 24 v50 h-34 v-50 q0-24 17-24 z"/>
+  </g>
+</svg>
