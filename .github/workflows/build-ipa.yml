@@ -79,21 +79,15 @@ jobs:
         if: github.ref == 'refs/heads/main'
         working-directory: .
         env:
-          DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
-          if [ -z "$DEPLOY_KEY" ]; then
-            echo "No DEPLOY_SSH_KEY — skipping deploy"
+          if [ -z "$DEPLOY_TOKEN" ]; then
+            echo "No DEPLOY_TOKEN — skipping deploy"
             exit 0
           fi
-          # Strip any whitespace/newlines from secrets
-          HOST=$(printf '%s' "$DEPLOY_HOST" | tr -d '\r\n\t ')
-          echo "$DEPLOY_KEY" > /tmp/dk && chmod 600 /tmp/dk
-          IPA_SIZE=$(wc -c < SingOpKoelsch-iOS/build/SingOpKoelsch.ipa | tr -d ' ')
-          scp -i /tmp/dk -o StrictHostKeyChecking=no \
-            SingOpKoelsch-iOS/build/SingOpKoelsch.ipa \
-            "${HOST}:/var/www/html8/app/SingOpKoelsch.ipa"
-          ssh -i /tmp/dk -o StrictHostKeyChecking=no "$HOST" \
-            "/var/www/html8/scripts/deploy_ipa.sh $IPA_SIZE"
-          rm /tmp/dk
+          curl -f -X POST \
+            -H "X-Deploy-Token: $DEPLOY_TOKEN" \
+            -F "ipa=@SingOpKoelsch-iOS/build/SingOpKoelsch.ipa" \
+            https://singopkoelsch.de/app/deploy.php
+          echo ""
           echo "✅ Live: https://singopkoelsch.de/app/SingOpKoelsch.ipa"
