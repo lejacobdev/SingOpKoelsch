@@ -1,64 +1,72 @@
 {
-  "name": "Sing op Kölsch",
-  "identifier": "de.singopkoelsch.altstore.pal",
-  "subtitle": "Dat kölsche Liederbuch",
-  "description": "Die App für kölsche Liedtexte. Hunderte Songs, Texte lesen, Vorschläge einreichen, Favoriten speichern.",
-  "iconURL": "https://singopkoelsch.de/app/icon.png",
-  "headerURL": "https://singopkoelsch.de/app/icon.png",
-  "website": "https://singopkoelsch.de",
-  "tintColor": "DC2626",
-  "sourceURL": "https://singopkoelsch.de/app/altstore-pal.json",
-  "apps": [
-    {
-      "name": "Sing op Kölsch",
-      "bundleIdentifier": "de.singopkoelsch.app",
-      "developerName": "singopkoelsch.de",
-      "subtitle": "Dat kölsche Liederbuch op dingem iPhone",
-      "localizedDescription": "Sing op Kölsch – die App zum kölschen Liederbuch.\n\nSuche nach Liedtiteln oder Interpreten, lies kölsche Liedtexte, schlage Korrekturen vor und verwalte dein Profil.\n\nNeu in 1.6:\n• Favoriten speichern\n• Songs per QR-Code teilen\n• Onboarding-Tour beim ersten Start\n• Push-Benachrichtigungen wenn Vorschläge beantwortet werden\n• Homescreen-Widget mit Zufallssong",
-      "iconURL": "https://singopkoelsch.de/app/icon.png",
-      "tintColor": "DC2626",
-      "category": "music",
-      "screenshotURLs": [],
-      "version": "1.6",
-      "versionDate": "2026-06-13",
-      "versionDescription": "Favoriten, QR-Code-Teilen, Onboarding, Push-Benachrichtigungen, Homescreen-Widget.",
-      "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-      "size": 381255,
-      "versions": [
+    "name": "Sing op Kölsch",
+    "identifier": "de.singopkoelsch.altstore.pal",
+    "subtitle": "Dat kölsche Liederbuch",
+    "description": "Die App für kölsche Liedtexte. Hunderte Songs, Texte lesen, Vorschläge einreichen, Favoriten speichern.",
+    "iconURL": "https:\/\/singopkoelsch.de\/app\/icon.png",
+    "headerURL": "https:\/\/singopkoelsch.de\/app\/icon.png",
+    "website": "https:\/\/singopkoelsch.de",
+    "tintColor": "DC2626",
+    "sourceURL": "https:\/\/singopkoelsch.de\/app\/altstore-pal.json",
+    "apps": [
         {
-          "version": "1.6",
-          "date": "2026-06-13",
-          "localizedDescription": "Favoriten, QR-Code-Teilen, Onboarding, Push-Benachrichtigungen, Homescreen-Widget.",
-          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-          "size": 381255,
-          "minOSVersion": "16.0"
-        },
-        {
-          "version": "1.5",
-          "date": "2026-06-13",
-          "localizedDescription": "Favoriten, QR-Code-Teilen, Onboarding, Push-Benachrichtigungen.",
-          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-          "size": 834041,
-          "minOSVersion": "16.0"
-        },
-        {
-          "version": "1.4",
-          "date": "2026-06-12",
-          "localizedDescription": "Kein Reinzoomen mehr in der App.",
-          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-          "size": 279228,
-          "minOSVersion": "17.0"
+            "name": "Sing op Kölsch",
+            "bundleIdentifier": "de.singopkoelsch.app",
+            "developerName": "singopkoelsch.de",
+            "subtitle": "Dat kölsche Liederbuch op dingem iPhone",
+            "localizedDescription": "Sing op Kölsch – die App zum kölschen Liederbuch.\n\nSuche nach Liedtiteln oder Interpreten, lies kölsche Liedtexte, schlage Korrekturen vor und verwalte dein Profil.\n\nNeu in 1.7:\n• Homescreen-Widget mit Zufallssong\n• Auf Widget tippen → Liedtext direkt öffnen\n\nFrüher:\n• Favoriten speichern\n• Songs per QR-Code teilen\n• Onboarding-Tour beim ersten Start\n• Push-Benachrichtigungen wenn Vorschläge beantwortet werden",
+            "iconURL": "https:\/\/singopkoelsch.de\/app\/icon.png",
+            "tintColor": "DC2626",
+            "category": "music",
+            "screenshotURLs": [],
+            "version": "1.7",
+            "versionDate": "2026-06-13",
+            "versionDescription": "Homescreen-Widget mit Zufallssong – direkt auf Liedtext tippen.",
+            "downloadURL": "https:\/\/singopkoelsch.de\/app\/SingOpKoelsch.ipa",
+            "size": 615266,
+            "versions": [
+                {
+                    "version": "1.7",
+                    "date": "2026-06-13",
+                    "localizedDescription": "Homescreen-Widget mit Zufallssong – direkt auf Liedtext tippen.",
+                    "downloadURL": "https:\/\/singopkoelsch.de\/app\/SingOpKoelsch.ipa",
+                    "size": 615266,
+                    "minOSVersion": "17.0"
+                },
+                {
+                    "version": "1.6",
+                    "date": "2026-06-13",
+                    "localizedDescription": "Favoriten, QR-Code-Teilen, Onboarding, Push-Benachrichtigungen.",
+                    "downloadURL": "https:\/\/singopkoelsch.de\/app\/SingOpKoelsch.ipa",
+                    "size": 615266,
+                    "minOSVersion": "17.0"
+                },
+                {
+                    "version": "1.5",
+                    "date": "2026-06-13",
+                    "localizedDescription": "Favoriten, QR-Code-Teilen, Onboarding, Push-Benachrichtigungen.",
+                    "downloadURL": "https:\/\/singopkoelsch.de\/app\/SingOpKoelsch.ipa",
+                    "size": 834041,
+                    "minOSVersion": "16.0"
+                },
+                {
+                    "version": "1.4",
+                    "date": "2026-06-12",
+                    "localizedDescription": "Kein Reinzoomen mehr in der App.",
+                    "downloadURL": "https:\/\/singopkoelsch.de\/app\/SingOpKoelsch.ipa",
+                    "size": 279228,
+                    "minOSVersion": "17.0"
+                }
+            ],
+            "appPermissions": {
+                "entitlements": [],
+                "privacy": {
+                    "NSMicrophoneUsageDescription": "Für die Song-Erkennung via ShazamKit.",
+                    "NSCameraUsageDescription": "Für Profilbild-Uploads.",
+                    "NSPhotoLibraryUsageDescription": "Für Profilbild-Uploads."
+                }
+            }
         }
-      ],
-      "appPermissions": {
-        "entitlements": [],
-        "privacy": {
-          "NSMicrophoneUsageDescription": "Für die Song-Erkennung via ShazamKit.",
-          "NSCameraUsageDescription": "Für Profilbild-Uploads.",
-          "NSPhotoLibraryUsageDescription": "Für Profilbild-Uploads."
-        }
-      }
-    }
-  ],
-  "news": []
+    ],
+    "news": []
 }
