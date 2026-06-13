@@ -57,12 +57,10 @@ jobs:
               DEVELOPMENT_TEAM="" SKIP_INSTALL=NO
           }
 
-      - name: Package IPA (strip Watch + Extensions for SideStore)
+      - name: Package IPA
         run: |
           APP=$(find build/SingOpKoelsch.xcarchive/Products -name "*.app" | grep -v Watch | head -1)
           echo "App: $APP"
-          # Strip embedded Watch app — SideStore kann es nicht signieren
-          rm -rf "$APP/Watch"
           mkdir -p build/ipa/Payload
           cp -r "$APP" build/ipa/Payload/
           cd build/ipa && zip -qr ../SingOpKoelsch.ipa Payload/

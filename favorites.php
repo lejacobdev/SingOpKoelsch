@@ -29,6 +29,69 @@ require_once "partials/head.php";
 require_once "partials/nav.php";
 ?>
 
+<style>
+.songs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.5rem;
+}
+.song-card {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.75rem !important;
+  padding: 0.85rem 1rem !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  text-decoration: none !important;
+  transition: background 0.18s, border-color 0.18s, transform 0.16s !important;
+}
+.song-card:hover {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+  transform: translateX(2px) !important;
+}
+.song-card-cover {
+  width: 38px; height: 38px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--bg-alt);
+}
+.song-card-cover-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(220,38,38,0.08));
+  color: rgba(220,38,38,0.55);
+}
+.song-card-info { flex: 1; min-width: 0; }
+.song-card-title {
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  color: var(--text) !important;
+  margin: 0 0 0.12rem !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.song-card-band {
+  font-size: 0.82rem !important;
+  color: var(--text-3) !important;
+  margin: 0 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.song-card-chevron { color: var(--text-3); opacity: 0; flex-shrink: 0; transition: opacity 0.18s, transform 0.18s; }
+.song-card:hover .song-card-chevron { opacity: 1; transform: translateX(3px); color: var(--primary); }
+@media (max-width: 480px) {
+  .songs-grid { grid-template-columns: 1fr; }
+  .song-card-cover { width: 34px; height: 34px; }
+}
+</style>
+
 <main class="content">
   <div class="page-header">
     <h1 style="display:flex;align-items:center;gap:0.6rem;">

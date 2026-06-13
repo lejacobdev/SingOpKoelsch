@@ -1,6 +1,7 @@
 import WidgetKit
 import SwiftUI
 import AppIntents
+import Security
 
 // MARK: - Model
 
@@ -32,6 +33,25 @@ struct SongProvider: AppIntentTimelineProvider {
     private let appGroup = "group.de.singopkoelsch.app"
     private let tokenKey = "widget_auth_token"
 
+    // Read token from App Group UserDefaults, then fall back to the main app's Keychain
+    private func loadToken() -> String? {
+        if let t = UserDefaults(suiteName: appGroup)?.string(forKey: tokenKey), !t.isEmpty {
+            return t
+        }
+        // Fallback: read directly from the shared Keychain (same service/account as AuthManager)
+        let query: [CFString: Any] = [
+            kSecClass:       kSecClassGenericPassword,
+            kSecAttrService: "de.singopkoelsch.app",
+            kSecAttrAccount: "auth_token",
+            kSecReturnData:  true,
+            kSecMatchLimit:  kSecMatchLimitOne
+        ]
+        var result: AnyObject?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
     func placeholder(in context: Context) -> SongEntry {
         SongEntry(date: .now,
                   song: RandomSong(id: 0, title: "Kölsche Klassiker", bandName: "Bläck Fööss", coverUrl: nil),
@@ -52,7 +72,7 @@ struct SongProvider: AppIntentTimelineProvider {
         var request: URLRequest
 
         if mode == .favorites,
-           let token = UserDefaults(suiteName: appGroup)?.string(forKey: tokenKey) {
+           let token = loadToken() {
             request = URLRequest(url: URL(string: "https://singopkoelsch.de/api/songs/random/favorite")!)
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         } else {

@@ -20,14 +20,14 @@
             "versionDate": "2026-06-13",
             "versionDescription": "Widget-Modus wählbar: Alle Songs oder Lieblingslieder.",
             "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-            "size": 404396,
+            "size": 414819,
             "versions": [
                 {
                     "version": "2.3",
                     "date": "2026-06-13",
                     "localizedDescription": "Medium-Widget im App-Stil – dunkler Hintergrund, roter Akzent, Cover-Thumbnail links.",
                     "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 404396,
+                    "size": 414819,
                     "minOSVersion": "17.0"
                 },
                 {
