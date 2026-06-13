@@ -6,7 +6,7 @@ options:
     iOS: "16.0"
     watchOS: "9.0"
   defaultConfig: Debug
-  xcodeVersion: "15"
+  xcodeVersion: "16.0"
 
 settings:
   base:
