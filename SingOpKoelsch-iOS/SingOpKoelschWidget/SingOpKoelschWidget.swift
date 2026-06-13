@@ -36,8 +36,8 @@ struct SongProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<SongEntry>) -> Void) {
         fetchRandom { entry in
-            // Refresh every 6 hours
-            let next = Calendar.current.date(byAdding: .hour, value: 6, to: .now)!
+            // Refresh every hour
+            let next = Calendar.current.date(byAdding: .hour, value: 1, to: .now)!
             completion(Timeline(entries: [entry], policy: .after(next)))
         }
     }
@@ -120,7 +120,7 @@ private struct SmallView: View {
             for: .widget
         )
         .foregroundStyle(.white)
-        .widgetURL(URL(string: "https://singopkoelsch.de/detail.php?lyrics=\(song.id)"))
+        .widgetURL(URL(string: "singopkoelsch://song/\(song.id)"))
     }
 }
 
@@ -172,7 +172,7 @@ private struct MediumView: View {
             for: .widget
         )
         .foregroundStyle(.white)
-        .widgetURL(URL(string: "https://singopkoelsch.de/detail.php?lyrics=\(song.id)"))
+        .widgetURL(URL(string: "singopkoelsch://song/\(song.id)"))
     }
 }
 

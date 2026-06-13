@@ -12,6 +12,7 @@ enum WebEnv {
 /// to hide the site's top navbar.
 struct WebView: UIViewRepresentable {
     let url: URL
+    var navigateTo: Binding<URL?> = .constant(nil)
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -48,7 +49,11 @@ struct WebView: UIViewRepresentable {
         return web
     }
 
-    func updateUIView(_ web: WKWebView, context: Context) {}
+    func updateUIView(_ web: WKWebView, context: Context) {
+        guard let pending = navigateTo.wrappedValue else { return }
+        web.load(URLRequest(url: pending))
+        DispatchQueue.main.async { self.navigateTo.wrappedValue = nil }
+    }
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         // Grant the microphone for the web Shazam recorder (getUserMedia).

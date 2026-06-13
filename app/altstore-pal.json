@@ -3,11 +3,11 @@
     "identifier": "de.singopkoelsch.altstore.pal",
     "subtitle": "Dat kölsche Liederbuch",
     "description": "Die App für kölsche Liedtexte. Hunderte Songs, Texte lesen, Vorschläge einreichen, Favoriten speichern.",
-    "iconURL": "https:\/\/singopkoelsch.de\/app\/icon.png",
-    "headerURL": "https:\/\/singopkoelsch.de\/app\/icon.png",
-    "website": "https:\/\/singopkoelsch.de",
+    "iconURL": "https://singopkoelsch.de/app/icon.png",
+    "headerURL": "https://singopkoelsch.de/app/icon.png",
+    "website": "https://singopkoelsch.de",
     "tintColor": "DC2626",
-    "sourceURL": "https:\/\/singopkoelsch.de\/app\/altstore-pal.json",
+    "sourceURL": "https://singopkoelsch.de/app/altstore-pal.json",
     "apps": [
         {
             "name": "Sing op Kölsch",
@@ -15,29 +15,37 @@
             "developerName": "singopkoelsch.de",
             "subtitle": "Dat kölsche Liederbuch op dingem iPhone",
             "localizedDescription": "Sing op Kölsch – die App zum kölschen Liederbuch.\n\nSuche nach Liedtiteln oder Interpreten, lies kölsche Liedtexte, schlage Korrekturen vor und verwalte dein Profil.\n\nNeu in 1.7:\n• Homescreen-Widget mit Zufallssong\n• Auf Widget tippen → Liedtext direkt öffnen\n\nFrüher:\n• Favoriten speichern\n• Songs per QR-Code teilen\n• Onboarding-Tour beim ersten Start\n• Push-Benachrichtigungen wenn Vorschläge beantwortet werden",
-            "iconURL": "https:\/\/singopkoelsch.de\/app\/icon.png",
+            "iconURL": "https://singopkoelsch.de/app/icon.png",
             "tintColor": "DC2626",
             "category": "music",
             "screenshotURLs": [],
-            "version": "1.7",
+            "version": "1.8",
             "versionDate": "2026-06-13",
-            "versionDescription": "Homescreen-Widget mit Zufallssong – direkt auf Liedtext tippen.",
-            "downloadURL": "https:\/\/singopkoelsch.de\/app\/SingOpKoelsch.ipa",
-            "size": 615266,
+            "versionDescription": "Widget öffnet Song direkt in der App – aktualisiert sich stündlich.",
+            "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+            "size": 393027,
             "versions": [
+                {
+                    "version": "1.8",
+                    "date": "2026-06-13",
+                    "localizedDescription": "Widget öffnet Song direkt in der App – aktualisiert sich stündlich.",
+                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+                    "size": 393027,
+                    "minOSVersion": "17.0"
+                },
                 {
                     "version": "1.7",
                     "date": "2026-06-13",
                     "localizedDescription": "Homescreen-Widget mit Zufallssong – direkt auf Liedtext tippen.",
-                    "downloadURL": "https:\/\/singopkoelsch.de\/app\/SingOpKoelsch.ipa",
-                    "size": 615266,
+                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+                    "size": 393027,
                     "minOSVersion": "17.0"
                 },
                 {
                     "version": "1.6",
                     "date": "2026-06-13",
                     "localizedDescription": "Favoriten, QR-Code-Teilen, Onboarding, Push-Benachrichtigungen.",
-                    "downloadURL": "https:\/\/singopkoelsch.de\/app\/SingOpKoelsch.ipa",
+                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
                     "size": 615266,
                     "minOSVersion": "17.0"
                 },
@@ -45,7 +53,7 @@
                     "version": "1.5",
                     "date": "2026-06-13",
                     "localizedDescription": "Favoriten, QR-Code-Teilen, Onboarding, Push-Benachrichtigungen.",
-                    "downloadURL": "https:\/\/singopkoelsch.de\/app\/SingOpKoelsch.ipa",
+                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
                     "size": 834041,
                     "minOSVersion": "16.0"
                 },
@@ -53,7 +61,7 @@
                     "version": "1.4",
                     "date": "2026-06-12",
                     "localizedDescription": "Kein Reinzoomen mehr in der App.",
-                    "downloadURL": "https:\/\/singopkoelsch.de\/app\/SingOpKoelsch.ipa",
+                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
                     "size": 279228,
                     "minOSVersion": "17.0"
                 }

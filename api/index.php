@@ -212,6 +212,24 @@ route('GET', ['songs'], function() use ($conn) {
     ]);
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// RANDOM SONG  (widget / random-play)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+route('GET', ['songs', 'random'], function() use ($conn) {
+    $result = $conn->query(
+        "SELECT l.id, l.title, b.band_name, l.cover_url, l.album, l.release_year
+         FROM singopkoelsch_lyrics l
+         LEFT JOIN singopkoelsch_bands b ON b.band_id = l.band_id
+         WHERE l.lyrics IS NOT NULL AND l.lyrics != ''
+         ORDER BY RAND() LIMIT 1"
+    );
+    $song = $result ? $result->fetch_assoc() : null;
+    if (!$song) json_err('No songs found', 404);
+    $song['id'] = (int)$song['id'];
+    json_ok($song);
+});
+
 route('GET', ['songs', ':id'], function($params) use ($conn) {
     $user   = require_auth();
     $songId = (int)$params['id'];
@@ -820,23 +838,6 @@ route('DELETE', ['favorites', ':id'], function($params) use ($conn) {
     $stmt->execute();
     $stmt->close();
     json_ok(['message' => 'Removed', 'song_id' => $songId]);
-});
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// RANDOM SONG  (widget / random-play)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-route('GET', ['songs', 'random'], function() use ($conn) {
-    $result = $conn->query(
-        "SELECT l.id, l.title, b.band_name, l.cover_url, l.album, l.release_year
-         FROM singopkoelsch_lyrics l
-         LEFT JOIN singopkoelsch_bands b ON b.band_id = l.band_id
-         WHERE l.lyrics IS NOT NULL AND l.lyrics != ''
-         ORDER BY RAND() LIMIT 1"
-    );
-    $song = $result ? $result->fetch_assoc() : null;
-    if (!$song) json_err('No songs found', 404);
-    json_ok($song);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
