@@ -61,6 +61,13 @@ jobs:
         run: |
           APP=$(find build/SingOpKoelsch.xcarchive/Products -name "*.app" | grep -v Watch | head -1)
           echo "App: $APP"
+          # Re-sign Watch app with explicit ad-hoc identity so SideStore doesn't crash
+          if [ -d "$APP/Watch" ]; then
+            find "$APP/Watch" -name "*.app" | while read WAPP; do
+              codesign --force --sign - --timestamp=none "$WAPP"
+            done
+            echo "Watch re-signed"
+          fi
           mkdir -p build/ipa/Payload
           cp -r "$APP" build/ipa/Payload/
           cd build/ipa && zip -qr ../SingOpKoelsch.ipa Payload/

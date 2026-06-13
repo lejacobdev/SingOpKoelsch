@@ -19,12 +19,28 @@
             "tintColor": "DC2626",
             "category": "music",
             "screenshotURLs": [],
-            "version": "2.5",
+            "version": "2.7",
             "versionDate": "2026-06-14",
-            "versionDescription": "Favoriten-Widget via Keychain-Fallback, Watch-App inklusive.",
+            "versionDescription": "Watch-App neu signiert – SideStore-Crash beim Installieren behoben.",
             "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-            "size": 652034,
+            "size": 652061,
             "versions": [
+                {
+                    "version": "2.7",
+                    "date": "2026-06-14",
+                    "localizedDescription": "Watch-App neu signiert – SideStore-Crash beim Installieren behoben.",
+                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+                    "size": 652061,
+                    "minOSVersion": "17.0"
+                },
+                {
+                    "version": "2.6",
+                    "date": "2026-06-14",
+                    "localizedDescription": "Watch-App-Crash in SideStore behoben.",
+                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+                    "size": 652061,
+                    "minOSVersion": "17.0"
+                },
                 {
                     "version": "2.5",
                     "date": "2026-06-14",
