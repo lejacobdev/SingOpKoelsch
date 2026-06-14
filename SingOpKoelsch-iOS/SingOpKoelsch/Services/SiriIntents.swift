@@ -44,8 +44,8 @@ struct SingOpKoelschShortcuts: AppShortcutsProvider {
             intent: OpenRandomSongIntent(),
             phrases: [
                 "Zufälligen Song in \(.applicationName)",
-                "Sing op Kölsch Song",
-                "Kölsch Song öffnen"
+                "\(.applicationName) Song",
+                "Kölsch Song in \(.applicationName)"
             ],
             shortTitle: "Zufälliger Song",
             systemImageName: "music.note"
@@ -54,7 +54,7 @@ struct SingOpKoelschShortcuts: AppShortcutsProvider {
             intent: OpenFavoriteSongIntent(),
             phrases: [
                 "Lieblingssong in \(.applicationName)",
-                "Sing op Kölsch Favorit"
+                "Favorit in \(.applicationName)"
             ],
             shortTitle: "Lieblingssong",
             systemImageName: "heart.fill"
