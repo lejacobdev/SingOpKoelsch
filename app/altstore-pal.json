@@ -19,18 +19,26 @@
             "tintColor": "DC2626",
             "category": "music",
             "screenshotURLs": [],
-            "version": "3.1",
+            "version": "3.2",
             "versionDate": "2026-06-14",
-            "versionDescription": "Dunkelmodus-Sync, Screenshot-Teilen, Haptic Feedback, Live Activity, Share Extension, Quick Actions, Focus Filter, StandBy-Widget, Schriftgröße, Favoriten-Swipe, Song-Notizen, Zuletzt-angesehen-Widget, Karneval-Countdown, Karneval-App-Icon.",
+            "versionDescription": "Mehrere Künstler pro Lied, Album-Trackliste mit nicht enthaltenen Liedern (grau), Admin-Übersetzungen, Fehler behoben.",
             "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-            "size": 740629,
+            "size": 740546,
             "versions": [
+                {
+                    "version": "3.2",
+                    "date": "2026-06-14",
+                    "localizedDescription": "Mehrere Künstler pro Lied, Album-Trackliste mit nicht enthaltenen Liedern (grau), Admin-Übersetzungen, Fehler behoben.",
+                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+                    "size": 740546,
+                    "minOSVersion": "17.0"
+                },
                 {
                     "version": "3.1",
                     "date": "2026-06-14",
                     "localizedDescription": "Dunkelmodus-Sync, Screenshot-Teilen, Haptic Feedback, Live Activity, Share Extension, Quick Actions, Focus Filter, StandBy-Widget, Schriftgröße, Favoriten-Swipe, Song-Notizen, Zuletzt-angesehen-Widget, Karneval-Countdown, Karneval-App-Icon.",
                     "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 740629,
+                    "size": 740546,
                     "minOSVersion": "17.0"
                 },
                 {
