@@ -724,7 +724,7 @@ class Database {
                     $bid = (int)$bid;
                     if ($bid <= 0) continue;
                     $s = $conn->prepare("INSERT IGNORE INTO singopkoelsch_song_artists (lyric_id, band_id, role, sort_order) VALUES (?, ?, ?, ?)");
-                    $s->bind_param("isis", $lyricId, $bid, $role, $i);
+                    $s->bind_param("iisi", $lyricId, $bid, $role, $i);
                     $s->execute(); $s->close();
                 }
             }
