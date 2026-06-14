@@ -1,6 +1,7 @@
 <?php
 require_once "protect.php";
 require_once "functions.php";
+require_once "partials/multi_artist_widget.php";
 
 Database::getConnection();
 Database::ensurePreferencesTable();
@@ -204,7 +205,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["proposed_lyrics"], $_
     }
 }
 
-$bandName  = htmlspecialchars($bandMap[$lyric["band_id"]] ?? '–');
+// Build comma-separated artist names for display
+$_performerNames = array_filter(array_map(fn($id) => $bandMap[$id] ?? null, $lyric['performer_ids'] ?? []));
+$_textNames      = array_filter(array_map(fn($id) => $bandMap[$id] ?? null, $lyric['text_ids']      ?? []));
+$_musicNames     = array_filter(array_map(fn($id) => $bandMap[$id] ?? null, $lyric['music_ids']     ?? []));
+
+$bandName  = $_performerNames ? htmlspecialchars(implode(', ', $_performerNames)) : htmlspecialchars($bandMap[$lyric["band_id"]] ?? '–');
 $pageTitle = htmlspecialchars($lyric["title"]) . " – " . $bandName . " – Sing op Kölsch";
 
 $_isLoggedIn  = !empty($_SESSION["user_id"]);
@@ -721,19 +727,34 @@ require_once "partials/nav.php";
       <div class="song-meta-item">
         <label><?= htmlspecialchars(t('detail.artist')) ?></label>
         <p>
-          <a href="/lieder.php?band=<?= (int)$lyric['band_id'] ?>" style="color:var(--text);text-decoration:none;font-weight:600;"><?= $bandName ?></a>
-          <?php if ($_bandId): ?>
-            <a href="https://de.wikipedia.org/wiki/<?= urlencode(strip_tags($bandName)) ?>" target="_blank" rel="noopener noreferrer" title="Wikipedia" style="margin-left:0.4rem;font-size:0.75rem;color:var(--text-3);text-decoration:none;">📖 Wiki</a>
+          <?php
+          $performerIds = $lyric['performer_ids'] ?? [];
+          if (empty($performerIds) && !empty($lyric['band_id'])) $performerIds = [(int)$lyric['band_id']];
+          if ($performerIds):
+              $parts = [];
+              foreach ($performerIds as $pid):
+                  $pname = $bandMap[$pid] ?? null;
+                  if ($pname) $parts[] = '<a href="/lieder.php?band=' . (int)$pid . '" style="color:var(--text);text-decoration:none;font-weight:600;">' . htmlspecialchars($pname) . '</a>';
+              endforeach;
+              echo implode(', ', $parts);
+          else:
+              echo '–';
+          endif;
+          ?>
+          <?php if (!empty($performerIds)):
+              $firstName = $bandMap[$performerIds[0]] ?? '';
+          ?>
+            <a href="https://de.wikipedia.org/wiki/<?= urlencode($firstName) ?>" target="_blank" rel="noopener noreferrer" title="Wikipedia" style="margin-left:0.4rem;font-size:0.75rem;color:var(--text-3);text-decoration:none;">📖 Wiki</a>
           <?php endif; ?>
         </p>
       </div>
       <div class="song-meta-item">
         <label><?= htmlspecialchars(t('detail.text_author')) ?></label>
-        <p><?= htmlspecialchars($bandMap[$lyric["text_autor_id"]] ?? '–') ?></p>
+        <p><?= $_textNames ? htmlspecialchars(implode(', ', $_textNames)) : htmlspecialchars($bandMap[$lyric["text_autor_id"]] ?? '–') ?></p>
       </div>
       <div class="song-meta-item">
         <label><?= htmlspecialchars(t('detail.music_author')) ?></label>
-        <p><?= htmlspecialchars($bandMap[$lyric["musik_autor_id"]] ?? '–') ?></p>
+        <p><?= $_musicNames ? htmlspecialchars(implode(', ', $_musicNames)) : htmlspecialchars($bandMap[$lyric["musik_autor_id"]] ?? '–') ?></p>
       </div>
       <div class="song-meta-item">
         <label><?= htmlspecialchars(t('detail.album')) ?></label>
@@ -1027,35 +1048,17 @@ require_once "partials/nav.php";
           <label for="m_title"><?= htmlspecialchars(t('detail.title')) ?></label>
           <input type="text" id="m_title" name="title" value="<?= htmlspecialchars($lyric["title"]) ?>" required>
         </div>
-        <div class="form-group" style="position:relative;">
-          <label for="m_band_search"><?= htmlspecialchars(t('detail.artist')) ?></label>
-          <input type="text" id="m_band_search" placeholder="<?= htmlspecialchars(t('modal.search_artist_ph')) ?>" autocomplete="off">
-          <select id="m_band_id" name="band_id" size="5" class="band-select">
-            <option value=""><?= htmlspecialchars(t('modal.choose')) ?></option>
-            <?php foreach ($bandsList as $b): ?>
-              <option value="<?= $b["band_id"] ?>" <?= ($b["band_id"] == $lyric["band_id"]) ? "selected" : "" ?>><?= htmlspecialchars($b["band_name"]) ?></option>
-            <?php endforeach; ?>
-          </select>
+        <div class="form-group">
+          <label><?= htmlspecialchars(t('detail.artist')) ?></label>
+          <?php renderMultiArtistSelect('band_id', $lyric['performer_ids'] ?? [], $bandsList, t('modal.search_artist_ph')) ?>
         </div>
-        <div class="form-group" style="position:relative;">
-          <label for="m_text_autor_search"><?= htmlspecialchars(t('modal.text_author')) ?></label>
-          <input type="text" id="m_text_autor_search" placeholder="<?= htmlspecialchars(t('modal.search_text_ph')) ?>" autocomplete="off">
-          <select id="m_text_autor_id" name="text_autor_id" size="5" class="band-select">
-            <option value=""><?= htmlspecialchars(t('modal.choose')) ?></option>
-            <?php foreach ($bandsList as $b): ?>
-              <option value="<?= $b["band_id"] ?>" <?= (isset($lyric["text_autor_id"]) && $b["band_id"] == $lyric["text_autor_id"]) ? "selected" : "" ?>><?= htmlspecialchars($b["band_name"]) ?></option>
-            <?php endforeach; ?>
-          </select>
+        <div class="form-group">
+          <label><?= htmlspecialchars(t('modal.text_author')) ?></label>
+          <?php renderMultiArtistSelect('text_autor_id', $lyric['text_ids'] ?? [], $bandsList, t('modal.search_text_ph')) ?>
         </div>
-        <div class="form-group" style="position:relative;">
-          <label for="m_musik_autor_search"><?= htmlspecialchars(t('modal.music_author')) ?></label>
-          <input type="text" id="m_musik_autor_search" placeholder="<?= htmlspecialchars(t('modal.search_music_ph')) ?>" autocomplete="off">
-          <select id="m_musik_autor_id" name="musik_autor_id" size="5" class="band-select">
-            <option value=""><?= htmlspecialchars(t('modal.choose')) ?></option>
-            <?php foreach ($bandsList as $b): ?>
-              <option value="<?= $b["band_id"] ?>" <?= (isset($lyric["musik_autor_id"]) && $b["band_id"] == $lyric["musik_autor_id"]) ? "selected" : "" ?>><?= htmlspecialchars($b["band_name"]) ?></option>
-            <?php endforeach; ?>
-          </select>
+        <div class="form-group">
+          <label><?= htmlspecialchars(t('modal.music_author')) ?></label>
+          <?php renderMultiArtistSelect('musik_autor_id', $lyric['music_ids'] ?? [], $bandsList, t('modal.search_music_ph')) ?>
         </div>
         <div class="form-group">
           <label for="m_album"><?= htmlspecialchars(t('detail.album')) ?></label>
@@ -1273,40 +1276,7 @@ require_once "partials/nav.php";
         });
       });
 
-      // Searchable selects inside meta modal
-      function setupSearchableSelect(inputId, selectId) {
-        var input  = document.getElementById(inputId);
-        var select = document.getElementById(selectId);
-        if (!input || !select) return;
-        var origOpts = Array.prototype.slice.call(select.options).filter(function(o){ return o.value !== ''; });
-        var selected = select.options[select.selectedIndex];
-        if (selected && selected.value !== '') input.value = selected.text;
-
-        input.addEventListener('input', function() {
-          var q = input.value.trim().toLowerCase();
-          select.innerHTML = '';
-          if (!q) { select.style.display = 'none'; select.appendChild(new Option('– Bitte wählen –', '')); origOpts.forEach(function(o){ select.appendChild(o); }); select.value = ''; return; }
-          var filtered = origOpts.filter(function(o){ return o.text.toLowerCase().indexOf(q) !== -1; });
-          var exactMatch = filtered.some(function(o){ return o.text.toLowerCase() === q; });
-          select.appendChild(new Option('– Bitte wählen –', ''));
-          if (!exactMatch) select.appendChild(new Option('[+ Neu: ' + input.value + ']', 'new:' + input.value));
-          filtered.forEach(function(o){ select.appendChild(o); });
-          select.style.display = 'block';
-          select.selectedIndex = filtered.length > 0 ? (exactMatch ? 1 : 2) : 1;
-        });
-        function confirmSelection() {
-          var opt = select.options[select.selectedIndex];
-          if (opt && opt.value !== '' && opt.value.indexOf('new:') !== 0) input.value = opt.text;
-          select.style.display = 'none';
-        }
-        select.addEventListener('change', confirmSelection);
-        input.addEventListener('blur',  function(){ setTimeout(confirmSelection, 150); });
-        select.addEventListener('blur', function(){ setTimeout(confirmSelection, 150); });
-        input.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); confirmSelection(); } });
-      }
-      setupSearchableSelect('m_band_search',        'm_band_id');
-      setupSearchableSelect('m_text_autor_search',  'm_text_autor_id');
-      setupSearchableSelect('m_musik_autor_search', 'm_musik_autor_id');
+      // Multi-artist widgets are initialized inline via initMasWidget() calls
     })();
   </script>
   <?php endif; ?>
@@ -1418,4 +1388,5 @@ require_once "partials/nav.php";
 
 </main>
 
+<?php require_once "partials/multi_artist_js.php"; ?>
 <?php require_once "partials/footer.php"; ?>

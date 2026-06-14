@@ -1,6 +1,7 @@
 <?php
 require_once "protect.php";
 require_once "functions.php";
+require_once "partials/multi_artist_widget.php";
 
 requireLogin();
 if (!isTrusted()) {
@@ -19,9 +20,6 @@ $spotify_link = $_POST["spotify_link"] ?? "";
 $video_link   = $_POST["video_link"] ?? "";
 $release_year = $_POST["release_year"] ?? "";
 $lyrics       = trim($_POST["lyrics"] ?? "");
-$band         = $_POST["band_id"] ?? "";
-$text_autor_id   = $_POST["text_autor_id"] ?? "";
-$musik_autor_id  = $_POST["musik_autor_id"] ?? "";
 
 $message = ""; $msgType = "info";
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -66,43 +64,19 @@ require_once "partials/nav.php";
           <input type="text" id="title" name="title" autofocus required value="<?= htmlspecialchars($title) ?>">
         </div>
 
-        <div class="form-group" style="position:relative;">
-          <label for="band_search"><?= htmlspecialchars(t('detail.artist')) ?></label>
-          <input type="text" id="band_search" placeholder="<?= htmlspecialchars(t('modal.search_artist_ph')) ?>" autocomplete="off" value="">
-          <select name="band_id" id="band_id" size="5" class="band-select" aria-label="<?= htmlspecialchars(t('detail.artist')) ?>">
-            <option value=""><?= htmlspecialchars(t('modal.choose')) ?></option>
-            <?php foreach ($bands as $row): ?>
-              <option value="<?= htmlspecialchars($row['band_id']) ?>" <?= ($row['band_id'] == $band) ? 'selected' : '' ?>>
-                <?= htmlspecialchars($row['band_name']) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
+        <div class="form-group">
+          <label><?= htmlspecialchars(t('detail.artist')) ?></label>
+          <?php renderMultiArtistSelect('band_id', [], $bands, t('modal.search_artist_ph')) ?>
         </div>
 
-        <div class="form-group" style="position:relative;">
-          <label for="text_autor_search"><?= htmlspecialchars(t('modal.text_author')) ?></label>
-          <input type="text" id="text_autor_search" placeholder="<?= htmlspecialchars(t('modal.search_text_ph')) ?>" autocomplete="off">
-          <select name="text_autor_id" id="text_autor_id" size="5" class="band-select" aria-label="<?= htmlspecialchars(t('modal.text_author')) ?>">
-            <option value=""><?= htmlspecialchars(t('modal.choose')) ?></option>
-            <?php foreach ($bands as $row): ?>
-              <option value="<?= htmlspecialchars($row['band_id']) ?>" <?= ($row['band_id'] == $text_autor_id) ? 'selected' : '' ?>>
-                <?= htmlspecialchars($row['band_name']) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
+        <div class="form-group">
+          <label><?= htmlspecialchars(t('modal.text_author')) ?></label>
+          <?php renderMultiArtistSelect('text_autor_id', [], $bands, t('modal.search_text_ph')) ?>
         </div>
 
-        <div class="form-group" style="position:relative;">
-          <label for="musik_autor_search"><?= htmlspecialchars(t('modal.music_author')) ?></label>
-          <input type="text" id="musik_autor_search" placeholder="<?= htmlspecialchars(t('modal.search_music_ph')) ?>" autocomplete="off">
-          <select name="musik_autor_id" id="musik_autor_id" size="5" class="band-select" aria-label="<?= htmlspecialchars(t('modal.music_author')) ?>">
-            <option value=""><?= htmlspecialchars(t('modal.choose')) ?></option>
-            <?php foreach ($bands as $row): ?>
-              <option value="<?= htmlspecialchars($row['band_id']) ?>" <?= ($row['band_id'] == $musik_autor_id) ? 'selected' : '' ?>>
-                <?= htmlspecialchars($row['band_name']) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
+        <div class="form-group">
+          <label><?= htmlspecialchars(t('modal.music_author')) ?></label>
+          <?php renderMultiArtistSelect('musik_autor_id', [], $bands, t('modal.search_music_ph')) ?>
         </div>
       </div>
 
@@ -195,41 +169,7 @@ document.getElementById('target').addEventListener('paste', function(e) {
     if (html) { document.getElementById('target').innerHTML += cleanWordHtml(html); syncLyrics(); }
 });
 
-document.addEventListener("DOMContentLoaded", () => {
-    setupSearchableSelect('band_search',        'band_id');
-    setupSearchableSelect('text_autor_search',  'text_autor_id');
-    setupSearchableSelect('musik_autor_search', 'musik_autor_id');
-});
-
-function setupSearchableSelect(inputId, selectId) {
-    const input    = document.getElementById(inputId);
-    const select   = document.getElementById(selectId);
-    const origOpts = Array.from(select.options).filter(o => o.value !== '');
-
-    input.addEventListener('input', () => {
-        const q = input.value.trim().toLowerCase();
-        select.innerHTML = '';
-        if (!q) { select.style.display = 'none'; select.appendChild(new Option('– Bitte wählen –', '')); origOpts.forEach(o => select.appendChild(o)); select.value = ''; return; }
-        const filtered   = origOpts.filter(o => o.text.toLowerCase().includes(q));
-        const exactMatch = filtered.some(o => o.text.toLowerCase() === q);
-        select.appendChild(new Option('– Bitte wählen –', ''));
-        if (!exactMatch) select.appendChild(new Option(`[+ Neu: ${input.value}]`, `new:${input.value}`));
-        filtered.forEach(o => select.appendChild(o));
-        select.style.display = 'block';
-        select.selectedIndex = filtered.length > 0 ? (exactMatch ? 1 : 2) : 1;
-    });
-
-    function confirmSelection() {
-        const opt = select.options[select.selectedIndex];
-        if (opt && opt.value !== '' && !opt.value.startsWith('new:')) input.value = opt.text;
-        select.style.display = 'none';
-    }
-
-    select.addEventListener('change', confirmSelection);
-    input.addEventListener('blur',    () => setTimeout(confirmSelection, 150));
-    select.addEventListener('blur',   () => setTimeout(confirmSelection, 150));
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); confirmSelection(); } });
-}
 </script>
 
+<?php require_once "partials/multi_artist_js.php"; ?>
 <?php require_once "partials/footer.php"; ?>

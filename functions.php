@@ -354,6 +354,17 @@ class Database {
 
     // Resolve a band select value to an ID.
     // Handles "new:Bandname" (create if needed), numeric IDs, and empty values.
+    public static function processNewBandEntries($values): array {
+        if ($values === null) return [];
+        if (!is_array($values)) $values = [$values];
+        $ids = [];
+        foreach ($values as $v) {
+            $id = self::processNewBandEntry((string)$v);
+            if ($id !== null) $ids[] = $id;
+        }
+        return array_values(array_unique($ids));
+    }
+
     public static function processNewBandEntry(?string $value): ?int {
         if ($value === null || $value === '') return null;
 
@@ -679,10 +690,49 @@ class Database {
         $stmt = $conn->prepare("SELECT id, title, band_id, text_autor_id, musik_autor_id, album, spotify_link, cover_url, video_link, release_year, lyrics, flagged, flag_reason FROM singopkoelsch_lyrics WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
-        $result = $stmt->get_result();
-        $data = $result->fetch_assoc();
+        $data = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-        return $data ?: null;
+        if (!$data) return null;
+
+        // Fetch all artists from junction table
+        $ar = $conn->prepare("SELECT band_id, role FROM singopkoelsch_song_artists WHERE lyric_id = ? ORDER BY sort_order, id");
+        $ar->bind_param("i", $id);
+        $ar->execute();
+        $artists = $ar->get_result()->fetch_all(MYSQLI_ASSOC);
+        $ar->close();
+
+        $data['performer_ids'] = array_values(array_map('intval', array_column(array_filter($artists, fn($a) => $a['role'] === 'performer'), 'band_id')));
+        $data['text_ids']      = array_values(array_map('intval', array_column(array_filter($artists, fn($a) => $a['role'] === 'text'),      'band_id')));
+        $data['music_ids']     = array_values(array_map('intval', array_column(array_filter($artists, fn($a) => $a['role'] === 'music'),     'band_id')));
+
+        // Fallback to FK columns if junction table has no data yet
+        if (empty($data['performer_ids']) && !empty($data['band_id']))       $data['performer_ids'] = [(int)$data['band_id']];
+        if (empty($data['text_ids'])      && !empty($data['text_autor_id'])) $data['text_ids']      = [(int)$data['text_autor_id']];
+        if (empty($data['music_ids'])     && !empty($data['musik_autor_id'])) $data['music_ids']    = [(int)$data['musik_autor_id']];
+
+        return $data;
+    }
+
+    public static function updateSongArtists(int $lyricId, array $performerIds, array $textIds, array $musicIds): void {
+        $conn = self::getConnection();
+        $conn->begin_transaction();
+        try {
+            $stmt = $conn->prepare("DELETE FROM singopkoelsch_song_artists WHERE lyric_id = ?");
+            $stmt->bind_param("i", $lyricId); $stmt->execute(); $stmt->close();
+            foreach ([['performer', $performerIds], ['text', $textIds], ['music', $musicIds]] as [$role, $ids]) {
+                foreach ($ids as $i => $bid) {
+                    $bid = (int)$bid;
+                    if ($bid <= 0) continue;
+                    $s = $conn->prepare("INSERT IGNORE INTO singopkoelsch_song_artists (lyric_id, band_id, role, sort_order) VALUES (?, ?, ?, ?)");
+                    $s->bind_param("isis", $lyricId, $bid, $role, $i);
+                    $s->execute(); $s->close();
+                }
+            }
+            $conn->commit();
+        } catch (Exception $e) {
+            $conn->rollback();
+            error_log('updateSongArtists: ' . $e->getMessage());
+        }
     }
 
     public static function getBandMap(): array {
@@ -701,12 +751,20 @@ class Database {
         return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
     }
 
-    public static function updateData(int $id, string $title, string $lyrics, $bandId, $textAutorId, $musikAutorId, string $album, string $spotify, string $video, $year): bool {
+    public static function updateData(int $id, string $title, string $lyrics, $bandIds, $textAutorIds, $musikAutorIds, string $album, string $spotify, string $video, $year): bool {
         $conn = self::getConnection();
 
-        if (empty($title)) {
-            return false;
-        }
+        if (empty($title)) return false;
+
+        // Normalize to arrays
+        $performerIds = is_array($bandIds)       ? $bandIds       : ($bandIds       !== null ? [$bandIds]       : []);
+        $textIds      = is_array($textAutorIds)  ? $textAutorIds  : ($textAutorIds  !== null ? [$textAutorIds]  : []);
+        $musicIds     = is_array($musikAutorIds) ? $musikAutorIds : ($musikAutorIds !== null ? [$musikAutorIds] : []);
+
+        // First value goes into legacy FK columns for backward compat
+        $primaryBand  = !empty($performerIds) ? (int)$performerIds[0] : null;
+        $primaryText  = !empty($textIds)      ? (int)$textIds[0]      : null;
+        $primaryMusic = !empty($musicIds)     ? (int)$musicIds[0]     : null;
 
         $stmt = $conn->prepare(
             "UPDATE singopkoelsch_lyrics SET
@@ -716,9 +774,11 @@ class Database {
         );
         if (!$stmt) return false;
 
-        $stmt->bind_param("ssiiisssii", $title, $lyrics, $bandId, $textAutorId, $musikAutorId, $album, $spotify, $video, $year, $id);
+        $stmt->bind_param("ssiiisssii", $title, $lyrics, $primaryBand, $primaryText, $primaryMusic, $album, $spotify, $video, $year, $id);
         $result = $stmt->execute();
         $stmt->close();
+
+        if ($result) self::updateSongArtists($id, $performerIds, $textIds, $musicIds);
         return $result;
     }
 
@@ -756,27 +816,38 @@ class Database {
         if ($_SERVER["REQUEST_METHOD"] !== "POST") return false;
 
         $title        = trim($_POST["title"] ?? "");
-        $band         = $_POST["band_id"] ?? null;
-        $textAutorId  = $_POST["text_autor_id"] ?? null;
-        $musikAutorId = $_POST["musik_autor_id"] ?? null;
         $album        = $_POST["album"] ?? "";
         $spotify      = $_POST["spotify_link"] ?? "";
         $video        = $_POST["video_link"] ?? "";
         $year         = $_POST["release_year"] ?? "";
         $lyrics       = trim($_POST["lyrics"] ?? "");
 
+        // Multi-artist: accept arrays from multi-select or single values
+        $bandRaw      = $_POST["band_id"] ?? [];
+        $textRaw      = $_POST["text_autor_id"] ?? [];
+        $musikRaw     = $_POST["musik_autor_id"] ?? [];
+
         if (empty($title)) {
             $_POST["message"] = "Es wird ein Titel benötigt.";
             return false;
         }
 
-        $conn    = self::getConnection();
-        $bandId       = self::getBandIdByName($conn, $band);
-        $textAutorId  = self::getBandIdByName($conn, $textAutorId);
-        $musikAutorId = self::getBandIdByName($conn, $musikAutorId);
+        $conn = self::getConnection();
+
+        // Resolve all artist values to band IDs
+        $performerIds = [];
+        foreach ((array)$bandRaw as $v)  { $id = self::getBandIdByName($conn, $v);  if ($id) $performerIds[] = $id; }
+        $textIds      = [];
+        foreach ((array)$textRaw as $v)  { $id = self::getBandIdByName($conn, $v);  if ($id) $textIds[]      = $id; }
+        $musicIds     = [];
+        foreach ((array)$musikRaw as $v) { $id = self::getBandIdByName($conn, $v);  if ($id) $musicIds[]     = $id; }
+
+        $primaryBand  = !empty($performerIds) ? $performerIds[0] : null;
+        $primaryText  = !empty($textIds)      ? $textIds[0]      : null;
+        $primaryMusic = !empty($musicIds)     ? $musicIds[0]     : null;
 
         $stmtCheck = $conn->prepare("SELECT id FROM singopkoelsch_lyrics WHERE title = ? AND band_id = ?");
-        $stmtCheck->bind_param("si", $title, $bandId);
+        $stmtCheck->bind_param("si", $title, $primaryBand);
         $stmtCheck->execute();
         $existing = $stmtCheck->get_result()->fetch_assoc();
         $stmtCheck->close();
@@ -788,9 +859,10 @@ class Database {
                     musik_autor_id = COALESCE(musik_autor_id, ?)
                  WHERE id = ?"
             );
-            $stmtUpdate->bind_param("iii", $textAutorId, $musikAutorId, $existing['id']);
+            $stmtUpdate->bind_param("iii", $primaryText, $primaryMusic, $existing['id']);
             $stmtUpdate->execute();
             $stmtUpdate->close();
+            self::updateSongArtists((int)$existing['id'], $performerIds, $textIds, $musicIds);
             $_POST["message"] = "Lied bereits vorhanden, Autoren ggf. verknüpft.";
             return false;
         }
@@ -802,8 +874,12 @@ class Database {
         }
 
         $year = $year ?: null;
-        $stmt->bind_param("siissssss", $title, $bandId, $textAutorId, $musikAutorId, $lyrics, $spotify, $video, $year, $album);
+        $stmt->bind_param("siissssss", $title, $primaryBand, $primaryText, $primaryMusic, $lyrics, $spotify, $video, $year, $album);
         $success = $stmt->execute();
+        if ($success) {
+            $newId = (int)$conn->insert_id;
+            self::updateSongArtists($newId, $performerIds, $textIds, $musicIds);
+        }
         $_POST["message"] = $success ? "Lied erfolgreich hinzugefügt." : "Fehler beim Hinzufügen des Liedes.";
         $stmt->close();
         return $success;
@@ -858,6 +934,12 @@ class Database {
     // fields actually present in $changes, so unchanged columns are preserved.
     public static function approveFullChangeRequest(int $crId, int $lyricsId, array $changes): bool {
         $conn = self::getConnection();
+
+        // Extract multi-artist arrays (handled separately via junction table)
+        $performerIds = isset($changes['performer_ids']) && is_array($changes['performer_ids']) ? $changes['performer_ids'] : null;
+        $textIds      = isset($changes['text_ids'])      && is_array($changes['text_ids'])      ? $changes['text_ids']      : null;
+        $musicIds     = isset($changes['music_ids'])     && is_array($changes['music_ids'])     ? $changes['music_ids']     : null;
+
         // Whitelist of allowed columns and their bind types.
         $cols = [
             'title'          => 's',
@@ -885,7 +967,22 @@ class Database {
             $types .= $type;
             $values[] = $val;
         }
-        if (empty($set)) {
+
+        // If multi-artist arrays present but no primary FK in changes, sync FK from first array value
+        if ($performerIds !== null && !array_key_exists('band_id', $changes)) {
+            $v = !empty($performerIds) ? (int)$performerIds[0] : null;
+            $set[] = "band_id = ?"; $types .= 'i'; $values[] = $v;
+        }
+        if ($textIds !== null && !array_key_exists('text_autor_id', $changes)) {
+            $v = !empty($textIds) ? (int)$textIds[0] : null;
+            $set[] = "text_autor_id = ?"; $types .= 'i'; $values[] = $v;
+        }
+        if ($musicIds !== null && !array_key_exists('musik_autor_id', $changes)) {
+            $v = !empty($musicIds) ? (int)$musicIds[0] : null;
+            $set[] = "musik_autor_id = ?"; $types .= 'i'; $values[] = $v;
+        }
+
+        if (empty($set) && $performerIds === null && $textIds === null && $musicIds === null) {
             // Nothing to apply, just mark approved.
             $stmt = $conn->prepare("UPDATE singopkoelsch_change_requests SET status='approved' WHERE id = ?");
             $stmt->bind_param("i", $crId);
@@ -893,16 +990,28 @@ class Database {
             $stmt->close();
             return $ok;
         }
+
         $conn->begin_transaction();
         try {
-            $sql = "UPDATE singopkoelsch_lyrics SET " . implode(', ', $set) . " WHERE id = ?";
-            $types .= 'i';
-            $values[] = $lyricsId;
-            $stmt = $conn->prepare($sql);
-            if (!$stmt) throw new Exception('prepare failed: ' . $conn->error);
-            $stmt->bind_param($types, ...$values);
-            if (!$stmt->execute()) throw new Exception('execute failed: ' . $stmt->error);
-            $stmt->close();
+            if (!empty($set)) {
+                $sql = "UPDATE singopkoelsch_lyrics SET " . implode(', ', $set) . " WHERE id = ?";
+                $types .= 'i';
+                $values[] = $lyricsId;
+                $stmt = $conn->prepare($sql);
+                if (!$stmt) throw new Exception('prepare failed: ' . $conn->error);
+                $stmt->bind_param($types, ...$values);
+                if (!$stmt->execute()) throw new Exception('execute failed: ' . $stmt->error);
+                $stmt->close();
+            }
+
+            // Apply multi-artist arrays to junction table
+            if ($performerIds !== null || $textIds !== null || $musicIds !== null) {
+                $current = self::queryDataById($lyricsId);
+                $newPerf  = $performerIds ?? ($current['performer_ids'] ?? []);
+                $newText  = $textIds      ?? ($current['text_ids']      ?? []);
+                $newMusic = $musicIds     ?? ($current['music_ids']     ?? []);
+                self::updateSongArtists($lyricsId, $newPerf, $newText, $newMusic);
+            }
 
             $stmt = $conn->prepare("UPDATE singopkoelsch_change_requests SET status='approved' WHERE id = ?");
             $stmt->bind_param("i", $crId);
@@ -1211,6 +1320,22 @@ class Database {
         if ($r && $r->num_rows === 0) {
             $conn->query("ALTER TABLE singopkoelsch_change_requests ADD COLUMN resolved_at TIMESTAMP NULL DEFAULT NULL");
         }
+        // Multi-artist junction table
+        $conn->query(
+            "CREATE TABLE IF NOT EXISTS singopkoelsch_song_artists (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                lyric_id INT NOT NULL,
+                band_id INT NOT NULL,
+                role ENUM('performer','text','music') NOT NULL,
+                sort_order TINYINT NOT NULL DEFAULT 0,
+                UNIQUE KEY uniq_artist (lyric_id, band_id, role),
+                INDEX idx_lyric (lyric_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+        );
+        // Migrate existing FK data (one-time, IGNORE skips duplicates)
+        $conn->query("INSERT IGNORE INTO singopkoelsch_song_artists (lyric_id, band_id, role, sort_order) SELECT id, band_id, 'performer', 0 FROM singopkoelsch_lyrics WHERE band_id IS NOT NULL");
+        $conn->query("INSERT IGNORE INTO singopkoelsch_song_artists (lyric_id, band_id, role, sort_order) SELECT id, text_autor_id, 'text', 0 FROM singopkoelsch_lyrics WHERE text_autor_id IS NOT NULL");
+        $conn->query("INSERT IGNORE INTO singopkoelsch_song_artists (lyric_id, band_id, role, sort_order) SELECT id, musik_autor_id, 'music', 0 FROM singopkoelsch_lyrics WHERE musik_autor_id IS NOT NULL");
     }
 
     // #71 Points + #72 Badges schema + helpers

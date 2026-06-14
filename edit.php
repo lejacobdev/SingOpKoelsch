@@ -1,6 +1,7 @@
 <?php
 require_once "protect.php";
 require_once "functions.php";
+require_once "partials/multi_artist_widget.php";
 
 requireLogin();
 
@@ -31,9 +32,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // Always start from current lyric and overlay only what this mode sent.
     if ($mode === 'lyrics') {
         $title        = (string)($lyric['title'] ?? '');
-        $bandId       = $lyric['band_id']        !== null ? (int)$lyric['band_id']        : null;
-        $textAutorId  = $lyric['text_autor_id']  !== null ? (int)$lyric['text_autor_id']  : null;
-        $musikAutorId = $lyric['musik_autor_id'] !== null ? (int)$lyric['musik_autor_id'] : null;
+        $performerIds = $lyric['performer_ids'] ?? [];
+        $textIds      = $lyric['text_ids']      ?? [];
+        $musicIds     = $lyric['music_ids']      ?? [];
         $spotify      = (string)($lyric['spotify_link'] ?? '');
         $video        = (string)($lyric['video_link'] ?? '');
         $year         = $lyric['release_year']   !== null ? (string)$lyric['release_year']   : '';
@@ -41,9 +42,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $lyricsText   = (string)($_POST["lyrics"] ?? '');
     } elseif ($mode === 'meta') {
         $title        = trim($_POST["title"] ?? "");
-        $bandId       = Database::processNewBandEntry($_POST["band_id"] ?? null);
-        $textAutorId  = Database::processNewBandEntry($_POST["text_autor_id"] ?? null);
-        $musikAutorId = Database::processNewBandEntry($_POST["musik_autor_id"] ?? null);
+        $performerIds = Database::processNewBandEntries($_POST["band_id"] ?? []);
+        $textIds      = Database::processNewBandEntries($_POST["text_autor_id"] ?? []);
+        $musicIds     = Database::processNewBandEntries($_POST["musik_autor_id"] ?? []);
         $spotify      = $_POST["spotify_link"] ?? "";
         $video        = $_POST["video_link"] ?? "";
         $year         = $_POST["release_year"] ?? "";
@@ -52,9 +53,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } else {
         $title        = trim($_POST["title"] ?? "");
         $lyricsText   = $_POST["lyrics"] ?? "";
-        $bandId       = Database::processNewBandEntry($_POST["band_id"] ?? null);
-        $textAutorId  = Database::processNewBandEntry($_POST["text_autor_id"] ?? null);
-        $musikAutorId = Database::processNewBandEntry($_POST["musik_autor_id"] ?? null);
+        $performerIds = Database::processNewBandEntries($_POST["band_id"] ?? []);
+        $textIds      = Database::processNewBandEntries($_POST["text_autor_id"] ?? []);
+        $musicIds     = Database::processNewBandEntries($_POST["musik_autor_id"] ?? []);
         $spotify      = $_POST["spotify_link"] ?? "";
         $video        = $_POST["video_link"] ?? "";
         $year         = $_POST["release_year"] ?? "";
@@ -62,7 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     if ($canBypass) {
-        $success = Database::updateData($id, $title, $lyricsText, $bandId, $textAutorId, $musikAutorId, $album, $spotify, $video, $year);
+        $success = Database::updateData($id, $title, $lyricsText, $performerIds, $textIds, $musicIds, $album, $spotify, $video, $year);
         if ($success) {
             header('Location: /detail.php?lyrics=' . $id . '&saved=1');
             exit;
@@ -71,12 +72,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $msgType = "error";
         }
     } else {
+        $primaryBandId    = !empty($performerIds) ? (int)$performerIds[0] : null;
+        $primaryTextId    = !empty($textIds)      ? (int)$textIds[0]      : null;
+        $primaryMusicId   = !empty($musicIds)     ? (int)$musicIds[0]     : null;
         $proposed = [
             'title'          => $title,
             'lyrics'         => $lyricsText,
-            'band_id'        => $bandId,
-            'text_autor_id'  => $textAutorId,
-            'musik_autor_id' => $musikAutorId,
+            'band_id'        => $primaryBandId,
+            'text_autor_id'  => $primaryTextId,
+            'musik_autor_id' => $primaryMusicId,
+            'performer_ids'  => $performerIds,
+            'text_ids'       => $textIds,
+            'music_ids'      => $musicIds,
             'album'          => $album,
             'spotify_link'   => $spotify,
             'video_link'     => $video,
@@ -85,9 +92,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $current = [
             'title'          => (string)($lyric['title'] ?? ''),
             'lyrics'         => (string)($lyric['lyrics'] ?? ''),
-            'band_id'        => $lyric['band_id']        !== null ? (int)$lyric['band_id']        : null,
-            'text_autor_id'  => $lyric['text_autor_id']  !== null ? (int)$lyric['text_autor_id']  : null,
-            'musik_autor_id' => $lyric['musik_autor_id'] !== null ? (int)$lyric['musik_autor_id'] : null,
+            'band_id'        => !empty($lyric['performer_ids']) ? (int)$lyric['performer_ids'][0] : ($lyric['band_id'] !== null ? (int)$lyric['band_id'] : null),
+            'text_autor_id'  => !empty($lyric['text_ids'])      ? (int)$lyric['text_ids'][0]      : ($lyric['text_autor_id']  !== null ? (int)$lyric['text_autor_id']  : null),
+            'musik_autor_id' => !empty($lyric['music_ids'])     ? (int)$lyric['music_ids'][0]     : ($lyric['musik_autor_id'] !== null ? (int)$lyric['musik_autor_id'] : null),
+            'performer_ids'  => $lyric['performer_ids'] ?? [],
+            'text_ids'       => $lyric['text_ids']      ?? [],
+            'music_ids'      => $lyric['music_ids']     ?? [],
             'album'          => (string)($lyric['album'] ?? ''),
             'spotify_link'   => (string)($lyric['spotify_link'] ?? ''),
             'video_link'     => (string)($lyric['video_link'] ?? ''),
@@ -96,7 +106,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         // Only persist fields that differ from the current values.
         $changes = [];
         foreach ($proposed as $k => $v) {
-            if ((string)$v !== (string)$current[$k]) $changes[$k] = $v;
+            $cur = $current[$k];
+            $different = is_array($v) || is_array($cur)
+                ? json_encode(array_values((array)$v)) !== json_encode(array_values((array)$cur))
+                : (string)$v !== (string)$cur;
+            if ($different) $changes[$k] = $v;
         }
         if (empty($changes)) {
             $message = t('edit.no_change');
@@ -187,43 +201,19 @@ require_once "partials/nav.php";
           <input type="text" id="title" name="title" value="<?= htmlspecialchars($lyric["title"]) ?>" required>
         </div>
 
-        <div class="form-group" style="position:relative;">
-          <label for="band_search"><?= htmlspecialchars(t('detail.artist')) ?></label>
-          <input type="text" id="band_search" placeholder="<?= htmlspecialchars(t('modal.search_artist_ph')) ?>" autocomplete="off">
-          <select id="band_id" name="band_id" size="5" class="band-select">
-            <option value=""><?= htmlspecialchars(t('modal.choose')) ?></option>
-            <?php foreach ($bands as $b): ?>
-              <option value="<?= $b["band_id"] ?>" <?= ($b["band_id"] == $lyric["band_id"]) ? "selected" : "" ?>>
-                <?= htmlspecialchars($b["band_name"]) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
+        <div class="form-group">
+          <label><?= htmlspecialchars(t('detail.artist')) ?></label>
+          <?php renderMultiArtistSelect('band_id', $lyric['performer_ids'] ?? [], $bands) ?>
         </div>
 
-        <div class="form-group" style="position:relative;">
-          <label for="text_autor_search"><?= htmlspecialchars(t('modal.text_author')) ?></label>
-          <input type="text" id="text_autor_search" placeholder="<?= htmlspecialchars(t('modal.search_text_ph')) ?>" autocomplete="off">
-          <select id="text_autor_id" name="text_autor_id" size="5" class="band-select">
-            <option value=""><?= htmlspecialchars(t('modal.choose')) ?></option>
-            <?php foreach ($bands as $b): ?>
-              <option value="<?= $b["band_id"] ?>" <?= (isset($lyric["text_autor_id"]) && $b["band_id"] == $lyric["text_autor_id"]) ? "selected" : "" ?>>
-                <?= htmlspecialchars($b["band_name"]) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
+        <div class="form-group">
+          <label><?= htmlspecialchars(t('modal.text_author')) ?></label>
+          <?php renderMultiArtistSelect('text_autor_id', $lyric['text_ids'] ?? [], $bands) ?>
         </div>
 
-        <div class="form-group" style="position:relative;">
-          <label for="musik_autor_search"><?= htmlspecialchars(t('modal.music_author')) ?></label>
-          <input type="text" id="musik_autor_search" placeholder="<?= htmlspecialchars(t('modal.search_music_ph')) ?>" autocomplete="off">
-          <select id="musik_autor_id" name="musik_autor_id" size="5" class="band-select">
-            <option value=""><?= htmlspecialchars(t('modal.choose')) ?></option>
-            <?php foreach ($bands as $b): ?>
-              <option value="<?= $b["band_id"] ?>" <?= (isset($lyric["musik_autor_id"]) && $b["band_id"] == $lyric["musik_autor_id"]) ? "selected" : "" ?>>
-                <?= htmlspecialchars($b["band_name"]) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
+        <div class="form-group">
+          <label><?= htmlspecialchars(t('modal.music_author')) ?></label>
+          <?php renderMultiArtistSelect('musik_autor_id', $lyric['music_ids'] ?? [], $bands) ?>
         </div>
       </div>
 
@@ -268,44 +258,6 @@ require_once "partials/nav.php";
   </div>
 </main>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    if (document.getElementById('band_search'))        setupSearchableSelect('band_search',        'band_id');
-    if (document.getElementById('text_autor_search'))  setupSearchableSelect('text_autor_search',  'text_autor_id');
-    if (document.getElementById('musik_autor_search')) setupSearchableSelect('musik_autor_search', 'musik_autor_id');
-});
-
-function setupSearchableSelect(inputId, selectId) {
-    const input    = document.getElementById(inputId);
-    const select   = document.getElementById(selectId);
-    const origOpts = Array.from(select.options).filter(o => o.value !== '');
-    const selected = select.options[select.selectedIndex];
-    if (selected && selected.value !== '') input.value = selected.text;
-
-    input.addEventListener('input', () => {
-        const q = input.value.trim().toLowerCase();
-        select.innerHTML = '';
-        if (!q) { select.style.display = 'none'; select.appendChild(new Option('– Bitte wählen –', '')); origOpts.forEach(o => select.appendChild(o)); select.value = ''; return; }
-        const filtered   = origOpts.filter(o => o.text.toLowerCase().includes(q));
-        const exactMatch = filtered.some(o => o.text.toLowerCase() === q);
-        select.appendChild(new Option('– Bitte wählen –', ''));
-        if (!exactMatch) select.appendChild(new Option(`[+ Neu: ${input.value}]`, `new:${input.value}`));
-        filtered.forEach(o => select.appendChild(o));
-        select.style.display = 'block';
-        select.selectedIndex = filtered.length > 0 ? (exactMatch ? 1 : 2) : 1;
-    });
-
-    function confirmSelection() {
-        const opt = select.options[select.selectedIndex];
-        if (opt && opt.value !== '' && !opt.value.startsWith('new:')) input.value = opt.text;
-        select.style.display = 'none';
-    }
-
-    select.addEventListener('change', confirmSelection);
-    input.addEventListener('blur',    () => setTimeout(confirmSelection, 150));
-    select.addEventListener('blur',   () => setTimeout(confirmSelection, 150));
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); confirmSelection(); } });
-}
-</script>
+<?php require_once "partials/multi_artist_js.php"; ?>
 
 <?php require_once "partials/footer.php"; ?>
