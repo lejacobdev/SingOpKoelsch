@@ -47,6 +47,90 @@ $conn->query("CREATE TABLE IF NOT EXISTS singopkoelsch_band_sponsors (id INT AUT
 $_sr = $conn->query("SELECT name, url, tier FROM singopkoelsch_band_sponsors WHERE band_id = $bandId");
 $sponsors = $_sr ? $_sr->fetch_all(MYSQLI_ASSOC) : [];
 
+// Fetch full album tracklist from iTunes to show songs not in DB
+$itunesTracks = [];
+if ($bandName && $album) {
+    $q   = urlencode($bandName . ' ' . $album);
+    $url = "https://itunes.apple.com/search?term=$q&media=music&entity=song&country=de&limit=50";
+    $ctx = stream_context_create(['http' => ['timeout' => 3, 'user_agent' => 'SingOpKoelsch/3.0']]);
+    $raw = @file_get_contents($url, false, $ctx);
+    if ($raw) {
+        $data = json_decode($raw, true);
+        $albumLower = strtolower($album);
+        foreach ($data['results'] ?? [] as $r) {
+            if (!isset($r['trackNumber'])) continue;
+            $col = strtolower($r['collectionName'] ?? '');
+            // Only include tracks whose collection name is similar to our album
+            if (similar_text($albumLower, $col) / max(1, strlen($albumLower)) < 0.55) continue;
+            $itunesTracks[$r['trackNumber']] = [
+                'trackNumber' => (int)$r['trackNumber'],
+                'trackName'   => $r['trackName'] ?? '',
+            ];
+        }
+        ksort($itunesTracks);
+    }
+}
+
+// Build merged tracklist
+$trackList = [];
+$dbByTrackNum = [];
+$dbByTitle    = [];
+foreach ($songs as $s) {
+    if ($s['track_number'] !== null) $dbByTrackNum[(int)$s['track_number']] = $s;
+    $dbByTitle[strtolower(trim($s['title']))] = $s;
+}
+
+if ($itunesTracks) {
+    $usedDbIds = [];
+    foreach ($itunesTracks as $tn => $it) {
+        // Prefer matching by track number; fall back to title only for songs without a track number in DB
+        $dbSong = $dbByTrackNum[$tn] ?? null;
+        if (!$dbSong) {
+            $titleLower = strtolower(trim($it['trackName']));
+            $candidate = $dbByTitle[$titleLower] ?? null;
+            // Only use title match if candidate has no track_number (avoid stealing track-numbered songs)
+            if ($candidate && $candidate['track_number'] === null) {
+                $dbSong = $candidate;
+            }
+        }
+        if ($dbSong) $usedDbIds[$dbSong['id']] = true;
+        $trackList[] = [
+            'track_number' => $tn,
+            'title'        => $dbSong ? $dbSong['title'] : $it['trackName'],
+            'in_db'        => $dbSong !== null,
+            'id'           => $dbSong['id'] ?? null,
+            'spotify_link' => $dbSong['spotify_link'] ?? null,
+        ];
+    }
+    // Append DB songs not matched by any iTunes track
+    $nextNum = count($itunesTracks) + 1;
+    foreach ($songs as $s) {
+        if (!isset($usedDbIds[$s['id']])) {
+            $trackList[] = [
+                'track_number' => $s['track_number'] ?? $nextNum++,
+                'title'        => $s['title'],
+                'in_db'        => true,
+                'id'           => $s['id'],
+                'spotify_link' => $s['spotify_link'] ?? null,
+            ];
+        }
+    }
+    usort($trackList, function($a, $b) { return ($a['track_number'] ?? 9999) - ($b['track_number'] ?? 9999); });
+} else {
+    foreach ($songs as $i => $s) {
+        $trackList[] = [
+            'track_number' => $s['track_number'] ?? ($i + 1),
+            'title'        => $s['title'],
+            'in_db'        => true,
+            'id'           => $s['id'],
+            'spotify_link' => $s['spotify_link'] ?? null,
+        ];
+    }
+}
+
+$totalTracks = count($trackList);
+$dbCount     = count($songs);
+
 $pageTitle = $album . ' – ' . $bandName . ' – Sing op Kölsch';
 require_once "partials/head.php";
 require_once "partials/nav.php";
@@ -70,7 +154,8 @@ require_once "partials/nav.php";
       <p class="album-sub">
         <a href="/lieder.php?band=<?= (int)$bandId ?>"><?= htmlspecialchars($bandName) ?></a>
         <?php if ($year): ?> · <?= $year ?><?php endif; ?>
-        · <?= htmlspecialchars(t(count($songs) === 1 ? 'album.song_count' : 'album.song_count_pl', ['n' => count($songs)])) ?>
+        · <?= htmlspecialchars(t($dbCount === 1 ? 'album.song_count' : 'album.song_count_pl', ['n' => $dbCount])) ?>
+        <?php if ($totalTracks > $dbCount): ?><span style="color:var(--text-3);font-size:0.85em;">/ <?= $totalTracks ?></span><?php endif; ?>
       </p>
     </div>
   </div>
@@ -94,19 +179,23 @@ require_once "partials/nav.php";
   <?php endif; ?>
 
   <div class="album-track-list">
-    <?php foreach ($songs as $i => $s): ?>
-      <div class="album-track">
-        <span class="album-track-num"><?= $s['track_number'] !== null ? (int)$s['track_number'] : ($i + 1) ?></span>
-        <a class="album-track-title" href="/detail.php?lyrics=<?= (int)$s['id'] ?>"
-           title="<?= htmlspecialchars(t('album.open_in_book')) ?>">
-          <?= htmlspecialchars($s['title']) ?>
-        </a>
-        <?php if (!empty($s['spotify_link'])): ?>
-          <a class="album-track-spotify" href="<?= htmlspecialchars($s['spotify_link']) ?>"
-             target="_blank" rel="noopener noreferrer"
-             title="<?= htmlspecialchars(t('detail.spotify')) ?>" aria-label="<?= htmlspecialchars(t('detail.spotify')) ?>">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.84-.179-.94-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.42 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+    <?php foreach ($trackList as $i => $t): ?>
+      <div class="album-track<?= !$t['in_db'] ? ' album-track--missing' : '' ?>">
+        <span class="album-track-num"><?= (int)($t['track_number'] ?? ($i + 1)) ?></span>
+        <?php if ($t['in_db']): ?>
+          <a class="album-track-title" href="/detail.php?lyrics=<?= (int)$t['id'] ?>"
+             title="<?= htmlspecialchars(t('album.open_in_book')) ?>">
+            <?= htmlspecialchars($t['title']) ?>
           </a>
+          <?php if (!empty($t['spotify_link'])): ?>
+            <a class="album-track-spotify" href="<?= htmlspecialchars($t['spotify_link']) ?>"
+               target="_blank" rel="noopener noreferrer"
+               title="<?= htmlspecialchars(t('detail.spotify')) ?>" aria-label="<?= htmlspecialchars(t('detail.spotify')) ?>">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.84-.179-.94-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.42 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+            </a>
+          <?php endif; ?>
+        <?php else: ?>
+          <span class="album-track-title album-track-title--missing"><?= htmlspecialchars($t['title']) ?></span>
         <?php endif; ?>
       </div>
     <?php endforeach; ?>
@@ -218,6 +307,16 @@ html.dark .album-track-title:hover { color: #fca5a5; }
 .album-track-spotify:hover {
   transform: scale(1.12);
   background: rgba(29,185,84,0.12);
+}
+.album-track--missing { opacity: 0.4; pointer-events: none; }
+.album-track--missing .album-track-num { color: var(--text-3); }
+.album-track-title--missing {
+  flex: 1; min-width: 0;
+  color: var(--text-3);
+  font-weight: 400;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding: 0.15rem 0;
+  font-style: italic;
 }
 
 @media (max-width: 600px) {

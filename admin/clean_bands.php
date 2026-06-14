@@ -21,8 +21,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $ok = $stmt->execute();
                 $stmt->close();
                 $msg = $ok
-                    ? '<div class="alert alert-success">Künstlername aktualisiert.</div>'
-                    : '<div class="alert alert-error">Fehler beim Umbenennen.</div>';
+                    ? '<div class="alert alert-success">' . htmlspecialchars(t('admin.bands.renamed')) . '</div>'
+                    : '<div class="alert alert-error">' . htmlspecialchars(t('admin.bands.rename_fail')) . '</div>';
             }
         } elseif ($action === 'delete') {
             // Null out references then delete the band
@@ -33,15 +33,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $conn->query("UPDATE singopkoelsch_lyrics SET musik_autor_id = NULL WHERE musik_autor_id = $bandId");
                 $conn->query("DELETE FROM singopkoelsch_bands WHERE band_id = $bandId");
                 $conn->commit();
-                $msg = '<div class="alert alert-success">Künstler gelöscht und Referenzen bereinigt.</div>';
+                $msg = '<div class="alert alert-success">' . htmlspecialchars(t('admin.bands.deleted')) . '</div>';
             } catch (Exception $e) {
                 $conn->rollback();
-                $msg = '<div class="alert alert-error">Fehler beim Löschen.</div>';
+                $msg = '<div class="alert alert-error">' . htmlspecialchars(t('admin.bands.delete_fail')) . '</div>';
             }
         } elseif ($action === 'split') {
             $names = array_values(array_filter(array_map('trim', preg_split('/\s*(?:,|;|\b und \b| & |\band\b| feat\.?\b| mit \b)\s*/iu', $_POST["new_name"] ?? ''))));
             if (count($names) < 2) {
-                $msg = '<div class="alert alert-error">Zum Aufteilen bitte mindestens zwei Namen angeben (kommagetrennt).</div>';
+                $msg = '<div class="alert alert-error">' . htmlspecialchars(t('admin.bands.split_fail_min')) . '</div>';
             } else {
                 $conn->begin_transaction();
                 try {
@@ -69,10 +69,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $conn->query("UPDATE singopkoelsch_lyrics SET musik_autor_id = $primary WHERE musik_autor_id = $bandId");
                     $conn->query("DELETE FROM singopkoelsch_bands WHERE band_id = $bandId");
                     $conn->commit();
-                    $msg = '<div class="alert alert-success">Künstler aufgeteilt – Referenzen wurden auf "' . htmlspecialchars($names[0]) . '" umgehängt.</div>';
+                    $msg = '<div class="alert alert-success">' . htmlspecialchars(t('admin.bands.deleted')) . ' – Referenzen wurden auf "' . htmlspecialchars($names[0]) . '" umgehängt.</div>';
                 } catch (Exception $e) {
                     $conn->rollback();
-                    $msg = '<div class="alert alert-error">Fehler beim Aufteilen.</div>';
+                    $msg = '<div class="alert alert-error">' . htmlspecialchars(t('admin.bands.split_fail')) . '</div>';
                 }
             }
         }
@@ -93,7 +93,7 @@ foreach ($malformed as $b) {
     $usageMap[$bid] = $r ? $r->fetch_assoc() : ['band_count'=>0,'text_count'=>0,'music_count'=>0];
 }
 
-$pageTitle = 'Künstler bereinigen – Sing op Kölsch';
+$pageTitle = e('admin.bands.title') . ' – Sing op Kölsch';
 require_once "../partials/head.php";
 require_once "../partials/nav.php";
 ?>
@@ -101,30 +101,30 @@ require_once "../partials/nav.php";
 <main class="content-wide">
   <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
     <div>
-      <h1>Künstler <span class="accent">bereinigen</span></h1>
-      <p>Künstler-Einträge, in denen mehrere Personen in einem Namen stehen (z. B. „X und Y").</p>
+      <h1><?= e('admin.bands.title') ?></h1>
+      <p><?= e('admin.bands.subtitle') ?></p>
     </div>
-    <a href="/admin/index.php" class="btn btn-ghost btn-sm">← Admin Dashboard</a>
+    <a href="/admin/index.php" class="btn btn-ghost btn-sm">← <?= e('admin.dashboard') ?></a>
   </div>
 
   <?= $msg ?>
 
   <?php if (empty($malformed)): ?>
     <div class="alert alert-success">
-      Keine fehlerhaften Künstler-Einträge gefunden. 🎉
+      <?= e('admin.bands.no_issues') ?>
     </div>
   <?php else: ?>
     <div class="card">
       <div class="card-header">
-        <?= count($malformed) ?> fehlerhafte Einträge
+        <?= e('admin.bands.count', ['n' => count($malformed)]) ?>
       </div>
       <div style="overflow-x:auto;">
         <table class="data-table">
           <thead>
             <tr>
-              <th>Künstlername</th>
-              <th>Verwendet als</th>
-              <th>Aktion</th>
+              <th><?= e('admin.bands.col_name') ?></th>
+              <th><?= e('admin.bands.col_used_as') ?></th>
+              <th><?= e('admin.col_action') ?></th>
             </tr>
           </thead>
           <tbody>
@@ -140,20 +140,20 @@ require_once "../partials/nav.php";
                     if ((int)$u['band_count']  > 0) $parts[] = $u['band_count']  . '× Interpret';
                     if ((int)$u['text_count']  > 0) $parts[] = $u['text_count']  . '× Text';
                     if ((int)$u['music_count'] > 0) $parts[] = $u['music_count'] . '× Musik';
-                    echo $parts ? htmlspecialchars(implode(', ', $parts)) : '<span class="text-muted">unbenutzt</span>';
+                    echo $parts ? htmlspecialchars(implode(', ', $parts)) : '<span class="text-muted">' . e('admin.bands.unused') . '</span>';
                   ?>
                 </td>
                 <td>
                   <form method="post" style="display:flex;flex-direction:column;gap:0.35rem;min-width:300px;">
                     <input type="hidden" name="band_id" value="<?= $bid ?>">
                     <input type="text" name="new_name"
-                           placeholder="Korrekte/r Name(n), z. B. „Tommy Engel" oder „A, B, C"
+                           placeholder="Korrekte/r Name(n), z. B. „Tommy Engel" oder „A, B, C""
                            style="padding:0.45rem 0.65rem !important;font-size:0.88rem !important;">
                     <div style="display:flex;gap:0.35rem;flex-wrap:wrap;">
-                      <button type="submit" name="action" value="rename" class="btn btn-secondary btn-sm">Umbenennen</button>
-                      <button type="submit" name="action" value="split"  class="btn btn-secondary btn-sm">Aufteilen (Primärname=erster)</button>
+                      <button type="submit" name="action" value="rename" class="btn btn-secondary btn-sm"><?= e('admin.bands.rename_btn') ?></button>
+                      <button type="submit" name="action" value="split"  class="btn btn-secondary btn-sm"><?= e('admin.bands.split_btn') ?></button>
                       <button type="submit" name="action" value="delete" class="btn btn-danger btn-sm"
-                              onclick="return confirm('Diesen Künstler wirklich löschen? Referenzen werden geleert.')">Löschen</button>
+                              onclick="return confirm('<?= htmlspecialchars(t('admin.bands.confirm_delete')) ?>')"><?= e('admin.bands.delete_btn') ?></button>
                     </div>
                   </form>
                 </td>
@@ -163,11 +163,7 @@ require_once "../partials/nav.php";
         </table>
       </div>
     </div>
-    <p class="text-sm text-muted mt-2">
-      <strong>Umbenennen</strong>: setzt diesen Eintrag auf einen einzelnen Namen.
-      <strong>Aufteilen</strong>: legt für jeden kommagetrennten Namen einen eigenen Künstler an und hängt alle Referenzen auf den ersten Namen um.
-      <strong>Löschen</strong>: entfernt den Eintrag und leert alle Verweise.
-    </p>
+    <p class="text-sm text-muted mt-2"><?= t('admin.bands.hint') ?></p>
   <?php endif; ?>
 </main>
 

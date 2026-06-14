@@ -32,7 +32,7 @@ $exactResult = $conn->query(
 );
 $exact = $exactResult ? $exactResult->fetch_all(MYSQLI_ASSOC) : [];
 
-$pageTitle = 'Duplikate – Sing op Kölsch';
+$pageTitle = e('admin.dup.title') . ' – Sing op Kölsch';
 require_once "../partials/head.php";
 require_once "../partials/nav.php";
 ?>
@@ -40,17 +40,17 @@ require_once "../partials/nav.php";
 <main class="content-wide">
   <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
     <div>
-      <h1>Duplikat-Erkennung</h1>
-      <p style="color:var(--text-2);margin:0;">Songs mit identischem oder ähnlichem Titel</p>
+      <h1><?= e('admin.dup.title') ?></h1>
+      <p style="color:var(--text-2);margin:0;"><?= e('admin.dup.subtitle') ?></p>
     </div>
-    <a href="/admin/" class="btn btn-secondary">← Dashboard</a>
+    <a href="/admin/" class="btn btn-secondary">← <?= e('admin.dashboard') ?></a>
   </div>
 
   <?php if ($exact): ?>
   <div style="margin-bottom:2rem;">
     <h2 style="font-size:1rem;margin:0 0 0.75rem;display:flex;align-items:center;gap:0.5rem;">
       <span style="background:#dc2626;color:#fff;border-radius:4px;padding:1px 6px;font-size:0.75rem;">EXAKT</span>
-      Gleicher Titel (<?= count($exact) ?>)
+      <?= e('admin.dup.exact_header', ['n' => count($exact)]) ?>
     </h2>
     <div style="display:flex;flex-direction:column;gap:0.4rem;">
       <?php foreach ($exact as $p): ?>
@@ -65,9 +65,9 @@ require_once "../partials/nav.php";
             <div style="font-size:0.78rem;color:var(--text-3);"><?= htmlspecialchars($p['band2'] ?? '–') ?> · ID <?= $p['id2'] ?></div>
           </a>
           <a href="/delete.php?lyrics=<?= $p['id2'] ?>"
-             onclick="return confirm('Song #<?= $p['id2'] ?> wirklich löschen?')"
+             onclick="return confirm('<?= htmlspecialchars(t('admin.dup.delete_confirm', ['n' => $p['id2']])) ?>')"
              class="btn btn-secondary" style="font-size:0.8rem;padding:0.3rem 0.6rem;color:#dc2626;">
-            #<?= $p['id2'] ?> löschen
+            <?= e('admin.dup.delete_btn', ['n' => $p['id2']]) ?>
           </a>
         </div>
       <?php endforeach; ?>
@@ -78,7 +78,7 @@ require_once "../partials/nav.php";
   <div>
     <h2 style="font-size:1rem;margin:0 0 0.75rem;display:flex;align-items:center;gap:0.5rem;">
       <span style="background:var(--border);border-radius:4px;padding:1px 6px;font-size:0.75rem;">ÄHNLICH</span>
-      Klanglich ähnliche Titel (<?= count($pairs) ?>)
+      <?= e('admin.dup.similar_header', ['n' => count($pairs)]) ?>
     </h2>
     <?php if ($pairs): ?>
       <div style="display:flex;flex-direction:column;gap:0.4rem;">
@@ -97,7 +97,7 @@ require_once "../partials/nav.php";
         <?php endforeach; ?>
       </div>
     <?php else: ?>
-      <p style="color:var(--text-3);">Keine ähnlichen Titel gefunden.</p>
+      <p style="color:var(--text-3);"><?= e('admin.dup.none_similar') ?></p>
     <?php endif; ?>
   </div>
 </main>

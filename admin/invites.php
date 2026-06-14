@@ -51,7 +51,7 @@ $used      = count(array_filter($codes, fn($c) => $c['user_id'] !== null || !emp
 $r = Database::getConnection()->query("SELECT COUNT(*) c FROM singopkoelsch_push_subs");
 $pushCount = $r ? (int)$r->fetch_assoc()['c'] : 0;
 
-$pageTitle = 'Einladungscodes – Sing op Kölsch';
+$pageTitle = e('admin.inv.title') . ' – Sing op Kölsch';
 require_once "../partials/head.php";
 require_once "../partials/nav.php";
 ?>
@@ -90,32 +90,32 @@ require_once "../partials/nav.php";
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
       <?= htmlspecialchars(t('admin.dashboard')) ?>
     </a>
-    <h1>Einladungs<span class="accent">codes</span></h1>
-    <p style="color:var(--text-3);margin:0.2rem 0 0;">Zugang nur mit Code. Aktiv: <?= $active ?> · Eingelöst: <?= $used ?></p>
+    <h1><?= e('admin.inv.title') ?></h1>
+    <p style="color:var(--text-3);margin:0.2rem 0 0;"><?= e('admin.inv.subtitle', ['active' => $active, 'used' => $used]) ?></p>
   </div>
 
   <?php if ($flash): ?><div class="alert alert-success" style="margin-bottom:1rem;"><?= htmlspecialchars($flash) ?></div><?php endif; ?>
-  <?php if ($betaEnded): ?><div class="alert alert-warn" style="margin-bottom:1rem;">Beta ist beendet – alle Nutzer (außer Admins) sind gesperrt.</div><?php endif; ?>
+  <?php if ($betaEnded): ?><div class="alert alert-warn" style="margin-bottom:1rem;"><?= e('admin.inv.beta_ended_warn') ?></div><?php endif; ?>
 
   <!-- Gate & Beta -->
   <div class="card mb-3">
-    <div class="card-header">Einladungs-Gate</div>
+    <div class="card-header"><?= e('admin.inv.gate_card') ?></div>
     <div class="card-body" style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
       <div>
-        <strong>Gate:</strong>
-        <span class="badge <?= $enabled ? 'badge-green' : 'badge-gray' ?>" style="margin-left:0.4em;"><?= $enabled ? 'AKTIV' : 'AUS' ?></span>
-        <?php if ($betaEnded): ?><span class="badge badge-red" style="margin-left:0.4em;">BETA BEENDET</span><?php endif; ?>
-        <p class="text-sm text-muted" style="margin:0.4rem 0 0;">Wenn aktiv, müssen alle (außer Admins) eingeloggt sein und einen gültigen Code eingelöst haben.</p>
+        <strong><?= e('admin.inv.gate_label') ?></strong>
+        <span class="badge <?= $enabled ? 'badge-green' : 'badge-gray' ?>" style="margin-left:0.4em;"><?= $enabled ? e('admin.inv.gate_on') : e('admin.inv.gate_off') ?></span>
+        <?php if ($betaEnded): ?><span class="badge badge-red" style="margin-left:0.4em;"><?= e('admin.inv.beta_ended_badge') ?></span><?php endif; ?>
+        <p class="text-sm text-muted" style="margin:0.4rem 0 0;"><?= e('admin.inv.gate_hint') ?></p>
       </div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
         <form method="post">
           <input type="hidden" name="action" value="toggle">
           <input type="hidden" name="enabled" value="<?= $enabled ? '0' : '1' ?>">
-          <button type="submit" class="<?= $enabled ? 'btn btn-danger' : 'btn btn-primary' ?>"><?= $enabled ? 'Deaktivieren' : 'Aktivieren' ?></button>
+          <button type="submit" class="<?= $enabled ? 'btn btn-danger' : 'btn btn-primary' ?>"><?= $enabled ? e('admin.inv.deactivate') : e('admin.inv.activate') ?></button>
         </form>
         <form method="post">
           <input type="hidden" name="action" value="<?= $betaEnded ? 'beta_resume' : 'beta_end' ?>">
-          <button type="submit" class="<?= $betaEnded ? 'btn btn-primary' : 'btn btn-danger' ?>"><?= $betaEnded ? 'Beta fortsetzen' : 'Beta beenden' ?></button>
+          <button type="submit" class="<?= $betaEnded ? 'btn btn-primary' : 'btn btn-danger' ?>"><?= $betaEnded ? e('admin.inv.beta_resume') : e('admin.inv.beta_end') ?></button>
         </form>
       </div>
     </div>
@@ -123,65 +123,75 @@ require_once "../partials/nav.php";
 
   <!-- Generate -->
   <div class="card mb-3">
-    <div class="card-header">Codes generieren</div>
+    <div class="card-header"><?= e('admin.inv.generate_card') ?></div>
     <form method="post" class="card-body" style="display:flex;gap:0.6rem;align-items:flex-end;flex-wrap:wrap;">
       <input type="hidden" name="action" value="generate">
       <div>
-        <label style="display:block;font-size:0.8rem;color:var(--text-2);margin-bottom:0.3rem;">Anzahl</label>
+        <label style="display:block;font-size:0.8rem;color:var(--text-2);margin-bottom:0.3rem;"><?= e('admin.inv.count_label') ?></label>
         <input type="number" name="count" value="1" min="1" max="100" style="width:90px;">
       </div>
       <div style="flex:1;min-width:160px;">
-        <label style="display:block;font-size:0.8rem;color:var(--text-2);margin-bottom:0.3rem;">Notiz (optional)</label>
+        <label style="display:block;font-size:0.8rem;color:var(--text-2);margin-bottom:0.3rem;"><?= e('admin.inv.note_label') ?></label>
         <input type="text" name="label" placeholder="z. B. Freunde, Beta-Tester" style="width:100%;">
       </div>
-      <button type="submit" class="btn btn-primary">Generieren</button>
+      <button type="submit" class="btn btn-primary"><?= e('admin.inv.generate_btn') ?></button>
     </form>
   </div>
 
   <!-- Push Broadcast -->
   <div class="card mb-3">
     <div class="card-header">
-      Push-Benachrichtigung senden
-      <span class="badge badge-gray" style="margin-left:0.4em;"><?= $pushCount ?> Abonnenten</span>
+      <?= e('admin.inv.push_card') ?>
+      <span class="badge badge-gray" style="margin-left:0.4em;"><?= e('admin.inv.subscribers', ['n' => $pushCount]) ?></span>
     </div>
     <form method="post" class="card-body" style="display:flex;gap:0.6rem;align-items:flex-end;flex-wrap:wrap;">
       <input type="hidden" name="action" value="push_broadcast">
       <div style="min-width:130px;">
-        <label style="display:block;font-size:0.8rem;color:var(--text-2);margin-bottom:0.3rem;">Titel</label>
+        <label style="display:block;font-size:0.8rem;color:var(--text-2);margin-bottom:0.3rem;"><?= e('admin.inv.push_title_label') ?></label>
         <input type="text" name="push_title" placeholder="Sing op Kölsch" style="width:100%;">
       </div>
       <div style="flex:2;min-width:200px;">
-        <label style="display:block;font-size:0.8rem;color:var(--text-2);margin-bottom:0.3rem;">Nachricht *</label>
+        <label style="display:block;font-size:0.8rem;color:var(--text-2);margin-bottom:0.3rem;"><?= e('admin.inv.push_msg_label') ?></label>
         <input type="text" name="push_body" placeholder="Neue Lieder verfügbar…" style="width:100%;" required>
       </div>
       <div style="min-width:90px;">
-        <label style="display:block;font-size:0.8rem;color:var(--text-2);margin-bottom:0.3rem;">Link</label>
+        <label style="display:block;font-size:0.8rem;color:var(--text-2);margin-bottom:0.3rem;"><?= e('admin.inv.push_link_label') ?></label>
         <input type="text" name="push_url" placeholder="/" style="width:100%;">
       </div>
-      <button type="submit" class="btn btn-primary">Senden</button>
+      <button type="submit" class="btn btn-primary"><?= e('admin.inv.send_btn') ?></button>
     </form>
   </div>
 
   <!-- Codes list -->
   <div class="card">
-    <div class="card-header">Codes (<?= count($codes) ?>)</div>
+    <div class="card-header"><?= e('admin.inv.codes_card', ['n' => count($codes)]) ?></div>
     <div class="card-body" style="overflow-x:auto;">
       <?php if (empty($codes)): ?>
-        <p class="text-muted" style="margin:0;">Noch keine Codes. Oben welche generieren.</p>
+        <p class="text-muted" style="margin:0;"><?= e('admin.inv.no_codes') ?></p>
       <?php else: ?>
       <div class="inv-filters">
-        <button type="button" class="inv-chip is-active" data-filter="all">Alle</button>
-        <button type="button" class="inv-chip" data-filter="free">Frei</button>
-        <button type="button" class="inv-chip" data-filter="redeemed">Eingelöst</button>
-        <button type="button" class="inv-chip" data-filter="inactive">Deaktiviert</button>
-        <input type="search" id="inv-search" placeholder="Code oder Name suchen…">
+        <button type="button" class="inv-chip is-active" data-filter="all"><?= e('admin.inv.filter_all') ?></button>
+        <button type="button" class="inv-chip" data-filter="free"><?= e('admin.inv.filter_free') ?></button>
+        <button type="button" class="inv-chip" data-filter="redeemed"><?= e('admin.inv.filter_redeemed') ?></button>
+        <button type="button" class="inv-chip" data-filter="inactive"><?= e('admin.inv.filter_inactive') ?></button>
+        <input type="search" id="inv-search" placeholder="<?= htmlspecialchars(t('admin.inv.search_ph')) ?>">
         <span id="inv-count"></span>
       </div>
       <form method="post" id="inv-form">
       <table class="inv-table">
-        <thead><tr><th>Code</th><th>Status</th><th>Gebunden an</th><th class="inv-hide-sm">Notiz</th><th style="text-align:right;">Aktionen</th></tr></thead>
+        <thead><tr><th><?= e('admin.inv.col_code') ?></th><th><?= e('admin.col_status') ?></th><th><?= e('admin.inv.col_bound') ?></th><th class="inv-hide-sm"><?= e('admin.inv.col_note') ?></th><th style="text-align:right;"><?= e('admin.inv.col_actions') ?></th></tr></thead>
         <tbody>
-        <?php foreach ($codes as $c):
+        <?php
+          $statusInactive = htmlspecialchars(t('admin.inv.status_inactive'));
+          $statusRedeemed = htmlspecialchars(t('admin.inv.status_redeemed'));
+          $statusActive   = htmlspecialchars(t('admin.inv.status_active'));
+          $boundDevice    = t('admin.inv.bound_device');
+          $boundFree      = t('admin.inv.bound_free');
+          $btnDeactivate  = htmlspecialchars(t('admin.inv.btn_deactivate'));
+          $btnActivate    = htmlspecialchars(t('admin.inv.btn_activate'));
+          $btnUnbind      = htmlspecialchars(t('admin.inv.btn_unbind'));
+          $btnDelete      = htmlspecialchars(t('admin.inv.btn_delete'));
+          foreach ($codes as $c):
             $redeemed  = $c['user_id'] !== null || !empty($c['device_id']);
             $st        = !$c['active'] ? 'inactive' : ($redeemed ? 'redeemed' : 'free');
             $searchStr = strtolower(invite_format($c['code'])) . ' ' . strtolower($c['user_name'] ?? '');
@@ -189,27 +199,27 @@ require_once "../partials/nav.php";
           <tr class="inv-row <?= $c['active'] ? '' : 'inv-dim' ?>" data-status="<?= $st ?>" data-search="<?= htmlspecialchars($searchStr) ?>">
             <td class="inv-code"><?= htmlspecialchars(invite_format($c['code'])) ?></td>
             <td><?php
-              if ($st === 'inactive')      echo '<span class="badge badge-gray">aus</span>';
-              elseif ($st === 'redeemed')  echo '<span class="badge badge-blue">eingelöst</span>';
-              else                         echo '<span class="badge badge-green">aktiv</span>';
+              if ($st === 'inactive')      echo "<span class='badge badge-gray'>$statusInactive</span>";
+              elseif ($st === 'redeemed')  echo "<span class='badge badge-blue'>$statusRedeemed</span>";
+              else                         echo "<span class='badge badge-green'>$statusActive</span>";
             ?></td>
             <td><?php
               if ($c['user_id']) echo '👤 ' . htmlspecialchars($c['user_name'] ?? ('#' . $c['user_id']));
-              elseif (!empty($c['device_id'])) echo '<span style="color:#93c5fd;">📱 Gerät</span>';
-              else echo '<span class="text-muted">frei</span>';
+              elseif (!empty($c['device_id'])) echo '<span style="color:#93c5fd;">' . htmlspecialchars($boundDevice) . '</span>';
+              else echo '<span class="text-muted">' . htmlspecialchars($boundFree) . '</span>';
             ?></td>
             <td class="inv-hide-sm text-muted"><?= htmlspecialchars($c['label'] ?? '') ?></td>
             <td>
               <div class="inv-actions">
                 <?php if ($c['active']): ?>
-                  <button type="button" class="inv-btn-deactivate" data-id="<?= (int)$c['id'] ?>">Deaktivieren</button>
+                  <button type="button" class="inv-btn-deactivate" data-id="<?= (int)$c['id'] ?>"><?= $btnDeactivate ?></button>
                 <?php else: ?>
-                  <button type="submit" name="do" value="activate:<?= (int)$c['id'] ?>" class="primary">Aktivieren</button>
+                  <button type="submit" name="do" value="activate:<?= (int)$c['id'] ?>" class="primary"><?= $btnActivate ?></button>
                 <?php endif; ?>
                 <?php if ($c['user_id'] || !empty($c['device_id'])): ?>
-                  <button type="button" class="inv-btn-confirm" data-do="unbind:<?= (int)$c['id'] ?>" data-msg="Bindung lösen? Der Code wird wieder frei.">Lösen</button>
+                  <button type="button" class="inv-btn-confirm" data-do="unbind:<?= (int)$c['id'] ?>" data-msg="Bindung lösen? Der Code wird wieder frei."><?= $btnUnbind ?></button>
                 <?php endif; ?>
-                <button type="button" class="danger inv-btn-confirm" data-do="delete:<?= (int)$c['id'] ?>" data-msg="Code endgültig löschen?">Löschen</button>
+                <button type="button" class="danger inv-btn-confirm" data-do="delete:<?= (int)$c['id'] ?>" data-msg="Code endgültig löschen?"><?= $btnDelete ?></button>
               </div>
             </td>
           </tr>
@@ -227,17 +237,19 @@ require_once "../partials/nav.php";
   <div class="inv-modal-box">
     <p id="inv-modal-msg"></p>
     <div id="inv-modal-reason" class="inv-modal-reason">
-      <label for="inv-modal-reason-input">Grund (optional)</label>
+      <label for="inv-modal-reason-input"><?= e('admin.inv.modal_reason') ?></label>
       <input type="text" id="inv-modal-reason-input" placeholder="z. B. Beta abgelaufen" autocomplete="off">
     </div>
     <div class="inv-modal-btns">
-      <button type="button" id="inv-modal-cancel" class="cancel">Abbrechen</button>
-      <button type="button" id="inv-modal-confirm" class="confirm">Bestätigen</button>
+      <button type="button" id="inv-modal-cancel" class="cancel"><?= e('admin.inv.modal_cancel') ?></button>
+      <button type="button" id="inv-modal-confirm" class="confirm"><?= e('admin.inv.modal_confirm') ?></button>
     </div>
   </div>
 </div>
 
 <script>
+var _invDeactivateMsg = <?= json_encode(t('admin.inv.deactivate_confirm')) ?>;
+var _invShownTpl = <?= json_encode(t('admin.inv.shown', ['n' => '__N__'])) ?>;
 (function () {
   // ── Filter & search ──────────────────────────────────────────────────
   var rows   = Array.prototype.slice.call(document.querySelectorAll('.inv-row'));
@@ -256,7 +268,7 @@ require_once "../partials/nav.php";
         r.style.display = vis ? '' : 'none';
         if (vis) shown++;
       });
-      count.textContent = shown + ' angezeigt';
+      count.textContent = _invShownTpl.replace('__N__', shown);
     }
     chips.forEach(function (c) {
       c.addEventListener('click', function () {
@@ -315,7 +327,7 @@ require_once "../partials/nav.php";
   });
   document.querySelectorAll('.inv-btn-deactivate').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      openModal('Code deaktivieren? Der Nutzer verliert Zugang.', 'deactivate:' + btn.dataset.id, true);
+      openModal(_invDeactivateMsg, 'deactivate:' + btn.dataset.id, true);
     });
   });
 })();

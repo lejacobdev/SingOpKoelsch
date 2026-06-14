@@ -84,12 +84,12 @@ require_once "../partials/nav.php";
       </a>
       <a href="/admin/proposals.php" class="btn btn-secondary"><?= htmlspecialchars(t('prop.title')) ?></a>
       <a href="/admin/users.php" class="btn btn-secondary"><?= htmlspecialchars(t('admin.manage_users')) ?></a>
-      <a href="/admin/invites.php" class="btn btn-secondary">Einladungscodes</a>
+      <a href="/admin/invites.php" class="btn btn-secondary"><?= htmlspecialchars(t('admin.inv.title')) ?></a>
       <a href="/admin/clean_bands.php" class="btn btn-secondary"><?= htmlspecialchars(t('admin.clean_bands')) ?></a>
-      <a href="/admin/stats.php" class="btn btn-secondary">📈 Statistiken</a>
-      <a href="/admin/duplicates.php" class="btn btn-secondary">🔍 Duplikate</a>
-      <a href="/admin/cover-search.php" class="btn btn-secondary">🎨 Cover-Suche</a>
-      <a href="/admin/bulk-actions.php" class="btn btn-secondary">⚡ Bulk-Aktionen</a>
+      <a href="/admin/stats.php" class="btn btn-secondary">📈 <?= htmlspecialchars(t('admin.stats.title')) ?></a>
+      <a href="/admin/duplicates.php" class="btn btn-secondary">🔍 <?= htmlspecialchars(t('admin.dup.title')) ?></a>
+      <a href="/admin/cover-search.php" class="btn btn-secondary"><?= htmlspecialchars(t('admin.covers.title')) ?></a>
+      <a href="/admin/bulk-actions.php" class="btn btn-secondary"><?= htmlspecialchars(t('admin.bulk.title')) ?></a>
       <a href="/liederbuch.php" class="btn btn-secondary"><?= htmlspecialchars(t('nav.songbook')) ?></a>
     </div>
   </div>
