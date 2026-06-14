@@ -28,7 +28,12 @@ function renderMultiArtistSelect(string $fieldName, array $selectedIds, array $b
       </div>
       <div class="mas-hidden" id="<?= $uid ?>-hidden"></div>
     </div>
-    <script>initMasWidget('<?= $uid ?>');</script>
+    <script>
+    (function(uid){
+      if(typeof window.initMasWidget==='function') window.initMasWidget(uid);
+      else { window._masQueue = window._masQueue||[]; window._masQueue.push(uid); }
+    })('<?= $uid ?>');
+    </script>
     <?php
 }
 ?>

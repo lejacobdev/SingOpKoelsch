@@ -128,5 +128,8 @@ window.initMasWidget = function(uid) {
 
     renderTags();
 };
+// Flush any widgets that rendered before this script loaded
+(window._masQueue || []).forEach(uid => window.initMasWidget(uid));
+window._masQueue = [];
 })();
 </script>
