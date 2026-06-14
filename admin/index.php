@@ -86,6 +86,8 @@ require_once "../partials/nav.php";
       <a href="/admin/users.php" class="btn btn-secondary"><?= htmlspecialchars(t('admin.manage_users')) ?></a>
       <a href="/admin/invites.php" class="btn btn-secondary">Einladungscodes</a>
       <a href="/admin/clean_bands.php" class="btn btn-secondary"><?= htmlspecialchars(t('admin.clean_bands')) ?></a>
+      <a href="/admin/stats.php" class="btn btn-secondary">📈 Statistiken</a>
+      <a href="/admin/duplicates.php" class="btn btn-secondary">🔍 Duplikate</a>
       <a href="/liederbuch.php" class="btn btn-secondary"><?= htmlspecialchars(t('nav.songbook')) ?></a>
     </div>
   </div>

@@ -16,18 +16,18 @@
             "tintColor": "DC2626",
             "category": "music",
             "screenshotURLs": [],
-            "version": "2.9",
+            "version": "3.0",
             "versionDate": "2026-06-14",
-            "versionDescription": "Stabile Version ohne Watch-App.",
+            "versionDescription": "Shazam-Button, Lock Screen Widget, Siri Shortcut, Song-Statistiken im Admin.",
             "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-            "size": 650945,
+            "size": 416789,
             "versions": [
                 {
-                    "version": "2.9",
+                    "version": "3.0",
                     "date": "2026-06-14",
-                    "localizedDescription": "Stabile Version ohne Watch-App.",
+                    "localizedDescription": "Shazam-Button, Lock Screen Widget, Siri Shortcut, Song-Statistiken im Admin.",
                     "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 650945,
+                    "size": 416789,
                     "minOSVersion": "17.0"
                 },
                 {

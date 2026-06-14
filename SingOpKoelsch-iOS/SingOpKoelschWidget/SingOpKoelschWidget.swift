@@ -108,9 +108,11 @@ struct SongWidgetEntryView: View {
     var body: some View {
         if let song = entry.song {
             switch family {
-            case .systemSmall:  SmallView(song: song, coverImage: entry.coverImage, mode: entry.mode)
-            case .systemMedium: MediumView(song: song, coverImage: entry.coverImage, mode: entry.mode)
-            default:            SmallView(song: song, coverImage: entry.coverImage, mode: entry.mode)
+            case .systemSmall:          SmallView(song: song, coverImage: entry.coverImage, mode: entry.mode)
+            case .systemMedium:         MediumView(song: song, coverImage: entry.coverImage, mode: entry.mode)
+            case .accessoryRectangular: LockRectView(song: song)
+            case .accessoryCircular:    LockCircleView(song: song)
+            default:                    SmallView(song: song, coverImage: entry.coverImage, mode: entry.mode)
             }
         } else {
             placeholderView
@@ -280,6 +282,46 @@ private struct MediumView: View {
     }
 }
 
+// MARK: - Lock Screen Views
+
+private struct LockRectView: View {
+    let song: RandomSong
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "music.note")
+                .font(.system(size: 13, weight: .semibold))
+                .unredacted()
+            VStack(alignment: .leading, spacing: 1) {
+                Text(song.title)
+                    .font(.system(size: 13, weight: .bold))
+                    .lineLimit(1)
+                Text(song.bandName)
+                    .font(.system(size: 11))
+                    .lineLimit(1)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .containerBackground(.clear, for: .widget)
+        .widgetURL(URL(string: "singopkoelsch://song/\(song.id)"))
+    }
+}
+
+private struct LockCircleView: View {
+    let song: RandomSong
+    var body: some View {
+        VStack(spacing: 2) {
+            Image(systemName: "music.note")
+                .font(.system(size: 16, weight: .semibold))
+            Text(String(song.title.prefix(3)))
+                .font(.system(size: 9, weight: .bold))
+                .lineLimit(1)
+        }
+        .containerBackground(.clear, for: .widget)
+        .widgetURL(URL(string: "singopkoelsch://song/\(song.id)"))
+    }
+}
+
 // MARK: - Widget Declaration
 
 struct SingOpKoelschWidget: Widget {
@@ -291,7 +333,7 @@ struct SingOpKoelschWidget: Widget {
         }
         .configurationDisplayName("Sing op Kölsch")
         .description("Zufälliger Song oder Lieblingslied auf dem Homescreen.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryCircular])
         .contentMarginsDisabled()
     }
 }

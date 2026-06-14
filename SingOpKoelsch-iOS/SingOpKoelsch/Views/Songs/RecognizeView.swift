@@ -80,6 +80,7 @@ final class RecognizeViewModel: NSObject, ObservableObject, SHSessionDelegate {
 }
 
 struct RecognizeView: View {
+    var onNavigate: ((Int) -> Void)? = nil
     @StateObject private var vm = RecognizeViewModel()
     @Environment(\.dismiss) var dismiss
     @State private var navigateToSong: (id: Int, title: String)?
@@ -157,8 +158,11 @@ struct RecognizeView: View {
                                 Text(item.artist ?? "").font(.subheadline).foregroundStyle(.secondary)
 
                                 if let db = vm.dbMatch {
-                                    NavigationLink(destination: SongDetailView(songId: db.id, title: db.title)) {
-                                        Label("In Sing op Koelsch oeffnen", systemImage: "arrow.right.circle.fill")
+                                    Button {
+                                        dismiss()
+                                        onNavigate?(db.id)
+                                    } label: {
+                                        Label("In Sing op Kölsch öffnen", systemImage: "arrow.right.circle.fill")
                                             .font(.subheadline.bold())
                                     }
                                     .buttonStyle(PrimaryButtonStyle())

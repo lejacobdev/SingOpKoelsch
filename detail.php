@@ -21,6 +21,16 @@ if (!$lyric) {
 $bandMap = Database::getBandMap();
 $bandsList = !empty($_SESSION["user_id"]) ? Database::getBandList() : [];
 
+// Track view (skip bots)
+if (empty($_SERVER['HTTP_X_BOT']) && (empty($_SERVER['HTTP_USER_AGENT']) || !preg_match('/bot|crawl|spider|slurp|facebookexternalhit/i', $_SERVER['HTTP_USER_AGENT']))) {
+    $conn = Database::getConnection();
+    $conn->query("CREATE TABLE IF NOT EXISTS singopkoelsch_views (id BIGINT AUTO_INCREMENT PRIMARY KEY, song_id INT NOT NULL, viewed_at DATETIME DEFAULT CURRENT_TIMESTAMP, INDEX idx_song (song_id), INDEX idx_time (viewed_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $vstmt = $conn->prepare("INSERT INTO singopkoelsch_views (song_id) VALUES (?)");
+    $vstmt->bind_param("i", $id);
+    $vstmt->execute();
+    $vstmt->close();
+}
+
 function formatLyrics(string $text): string {
     $text = preg_replace('/^[ \t]+/m', '', $text);
     $text = htmlspecialchars($text);
@@ -29,6 +39,21 @@ function formatLyrics(string $text): string {
 }
 
 $msg = "";
+
+// Admin: cover löschen
+if ($_SERVER["REQUEST_METHOD"] === "POST"
+    && isset($_POST["delete_cover"])
+    && function_exists('isAdmin') && isAdmin()) {
+    $conn = Database::getConnection();
+    $stmt = $conn->prepare("UPDATE singopkoelsch_lyrics SET cover_url = NULL, album = NULL, spotify_link = NULL WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $stmt->close();
+    $lyric["cover_url"] = null;
+    $lyric["album"] = null;
+    $lyric["spotify_link"] = null;
+    $msg = '<div class="alert alert-success">Cover gelöscht.</div>';
+}
 
 // Admin: flag / unflag a song as potentially incorrect
 if ($_SERVER["REQUEST_METHOD"] === "POST"
@@ -285,6 +310,14 @@ require_once "partials/nav.php";
           <a href="<?= htmlspecialchars($_loginReturn) ?>" class="cover-edit-overlay" title="<?= htmlspecialchars(t('detail.cover_edit')) ?>" aria-label="<?= htmlspecialchars(t('detail.cover_edit')) ?>">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
           </a>
+        <?php endif; ?>
+        <?php if (isAdmin()): ?>
+          <form method="post" style="position:absolute;top:4px;left:4px;" onsubmit="return confirm('Cover wirklich löschen?')">
+            <input type="hidden" name="delete_cover" value="1">
+            <button type="submit" title="Cover löschen" style="background:rgba(0,0,0,0.6);border:none;border-radius:6px;padding:4px 6px;cursor:pointer;line-height:0;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>
+          </form>
         <?php endif; ?>
       <?php endif; ?>
     </div>

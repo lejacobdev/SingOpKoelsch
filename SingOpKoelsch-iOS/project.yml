@@ -50,8 +50,8 @@ targets:
       path: SingOpKoelsch/Info.plist
       properties:
         CFBundleDisplayName: "Sing op Kölsch"
-        CFBundleShortVersionString: "2.9"
-        CFBundleVersion: "19"
+        CFBundleShortVersionString: "3.0"
+        CFBundleVersion: "20"
         CFBundleURLTypes:
           - CFBundleURLName: de.singopkoelsch.app
             CFBundleURLSchemes:
