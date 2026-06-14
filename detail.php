@@ -31,6 +31,19 @@ if (empty($_SERVER['HTTP_X_BOT']) && (empty($_SERVER['HTTP_USER_AGENT']) || !pre
     $vstmt->close();
 }
 
+// #9 Related songs + #52 Random song from this band
+$_bandId = (int)($lyric['band_id'] ?? 0);
+$_relatedSongs = [];
+if ($_bandId) {
+    $conn = Database::getConnection();
+    $rr = $conn->prepare("SELECT id, title, cover_url, album FROM singopkoelsch_lyrics WHERE band_id = ? AND id != ? AND lyrics IS NOT NULL AND lyrics != '' ORDER BY RAND() LIMIT 5");
+    $rr->bind_param("ii", $_bandId, $id);
+    $rr->execute();
+    $rres = $rr->get_result();
+    while ($row = $rres->fetch_assoc()) $_relatedSongs[] = $row;
+    $rr->close();
+}
+
 function formatLyrics(string $text): string {
     $text = preg_replace('/^[ \t]+/m', '', $text);
     $text = htmlspecialchars($text);
@@ -209,11 +222,38 @@ if ($_isLoggedIn) {
     $fs->close();
 }
 
+// #5 Setlists — add song to setlist
+$_userSetlists = [];
+if ($_isLoggedIn) {
+    $dconn2 = Database::getConnection();
+    $dconn2->query("CREATE TABLE IF NOT EXISTS singopkoelsch_setlists (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, name VARCHAR(255) NOT NULL, description TEXT, share_token VARCHAR(64) NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, INDEX idx_user (user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $dconn2->query("CREATE TABLE IF NOT EXISTS singopkoelsch_setlist_songs (id INT AUTO_INCREMENT PRIMARY KEY, setlist_id INT NOT NULL, song_id INT NOT NULL, position INT NOT NULL DEFAULT 0, added_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uniq (setlist_id, song_id), INDEX idx_setlist (setlist_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["add_to_setlist"])) {
+        $slId = (int)$_POST["add_to_setlist"];
+        $vs = $dconn2->prepare("SELECT id FROM singopkoelsch_setlists WHERE id = ? AND user_id = ?");
+        $vs->bind_param("ii", $slId, $_SESSION["user_id"]); $vs->execute();
+        if ($vs->get_result()->fetch_assoc()) {
+            $ins = $dconn2->prepare("INSERT IGNORE INTO singopkoelsch_setlist_songs (setlist_id, song_id) VALUES (?, ?)");
+            $ins->bind_param("ii", $slId, $id); $ins->execute(); $ins->close();
+        }
+        $vs->close();
+        header("Location: /detail.php?lyrics=$id&added_setlist=1"); exit;
+    }
+    $slst = $dconn2->prepare("SELECT id, name FROM singopkoelsch_setlists WHERE user_id = ? ORDER BY name ASC LIMIT 20");
+    $slst->bind_param("i", $_SESSION["user_id"]); $slst->execute();
+    $_userSetlists = $slst->get_result()->fetch_all(MYSQLI_ASSOC); $slst->close();
+}
+
+
 require_once "partials/head.php";
 require_once "partials/nav.php";
 ?>
 
 <main class="content">
+
+<!-- #15 Scroll progress bar -->
+<div id="scroll-progress" style="position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,#DC2626,#ef4444);z-index:9999;transition:width 0.08s linear;pointer-events:none;" aria-hidden="true"></div>
+<script>(function(){var b=document.getElementById('scroll-progress');function u(){var s=document.documentElement;b.style.width=Math.min(100,Math.max(0,(s.scrollTop/(s.scrollHeight-s.clientHeight))*100))+'%';}window.addEventListener('scroll',u,{passive:true});u();})();</script>
 
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;gap:0.5rem;">
     <button type="button" class="round-icon-btn" data-back-btn data-back-fallback="/lieder.php"
@@ -235,6 +275,25 @@ require_once "partials/nav.php";
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/>
         </svg>
       </button>
+      <?php endif; ?>
+      <?php if ($_isLoggedIn && !empty($_userSetlists)): ?>
+      <!-- #5 Add to setlist -->
+      <div style="position:relative;">
+        <button type="button" id="setlist-btn" class="round-icon-btn" title="Zu Setlist hinzufügen" aria-label="Setlist">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </button>
+        <div id="setlist-menu" hidden style="position:absolute;right:0;top:calc(100% + 0.4rem);background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.25);min-width:180px;z-index:200;overflow:hidden;">
+          <?php if (!empty($_GET['added_setlist'])): ?><div style="padding:0.5rem 0.85rem;font-size:0.8rem;color:#22c55e;">✓ Hinzugefügt!</div><?php endif; ?>
+          <?php foreach ($_userSetlists as $sl): ?>
+            <form method="post" style="margin:0;">
+              <input type="hidden" name="add_to_setlist" value="<?= (int)$sl['id'] ?>">
+              <button type="submit" style="width:100%;text-align:left;background:none;border:none;padding:0.6rem 0.85rem;font-size:0.88rem;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);">+ <?= htmlspecialchars($sl['name']) ?></button>
+            </form>
+          <?php endforeach; ?>
+          <a href="/setlists.php" style="display:block;padding:0.55rem 0.85rem;font-size:0.8rem;color:var(--text-3);text-decoration:none;">Setlists verwalten →</a>
+        </div>
+      </div>
+      <script>document.getElementById('setlist-btn').addEventListener('click',function(){var m=document.getElementById('setlist-menu');m.hidden=!m.hidden;});document.addEventListener('click',function(e){if(!e.target.closest('#setlist-btn')&&!e.target.closest('#setlist-menu'))document.getElementById('setlist-menu').hidden=true;});</script>
       <?php endif; ?>
       <!-- QR share button -->
       <button type="button" id="qr-btn" class="round-icon-btn" title="QR-Code teilen" aria-label="QR-Code">
@@ -661,7 +720,12 @@ require_once "partials/nav.php";
     <div class="song-meta-grid">
       <div class="song-meta-item">
         <label><?= htmlspecialchars(t('detail.artist')) ?></label>
-        <p><?= $bandName ?></p>
+        <p>
+          <a href="/lieder.php?band=<?= (int)$lyric['band_id'] ?>" style="color:var(--text);text-decoration:none;font-weight:600;"><?= $bandName ?></a>
+          <?php if ($_bandId): ?>
+            <a href="https://de.wikipedia.org/wiki/<?= urlencode(strip_tags($bandName)) ?>" target="_blank" rel="noopener noreferrer" title="Wikipedia" style="margin-left:0.4rem;font-size:0.75rem;color:var(--text-3);text-decoration:none;">📖 Wiki</a>
+          <?php endif; ?>
+        </p>
       </div>
       <div class="song-meta-item">
         <label><?= htmlspecialchars(t('detail.text_author')) ?></label>
@@ -1323,6 +1387,34 @@ require_once "partials/nav.php";
   }
 })();
 </script>
+
+
+<?php if (!empty($_relatedSongs)): ?>
+  <!-- #9 Verwandte Songs + #52 Zufälliger Song dieser Band -->
+  <div style="margin-top:2.5rem;border-top:1px solid var(--border);padding-top:1.75rem;">
+    <header class="detail-section-head">
+      <h3>Mehr von <?= htmlspecialchars($bandName) ?></h3>
+      <a href="/api/songs/random/band/<?= $_bandId ?>?redirect=1" class="round-icon-btn" title="Zufälliger Song dieser Band" aria-label="Zufälliger Song dieser Band">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+      </a>
+    </header>
+    <div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.75rem;">
+      <?php foreach ($_relatedSongs as $_rs): ?>
+        <a href="/detail.php?lyrics=<?= (int)$_rs['id'] ?>" style="display:flex;align-items:center;gap:0.65rem;padding:0.6rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;text-decoration:none;transition:background 0.15s,border-color 0.15s;">
+          <?php if (!empty($_rs['cover_url'])): ?>
+            <img src="<?= htmlspecialchars($_rs['cover_url']) ?>" style="width:38px;height:38px;border-radius:5px;object-fit:cover;flex-shrink:0;" alt="" loading="lazy">
+          <?php else: ?>
+            <span style="width:38px;height:38px;border-radius:5px;background:rgba(220,38,38,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">🎵</span>
+          <?php endif; ?>
+          <div style="min-width:0;">
+            <div style="font-weight:600;font-size:0.88rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($_rs['title']) ?></div>
+            <?php if (!empty($_rs['album'])): ?><div style="font-size:0.78rem;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($_rs['album']) ?></div><?php endif; ?>
+          </div>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+<?php endif; ?>
 
 </main>
 

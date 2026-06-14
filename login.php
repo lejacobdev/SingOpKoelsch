@@ -73,7 +73,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $stmt->bind_param("s", $email); $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc(); $stmt->close();
         if ($row && password_verify($password, $row["password"])) {
-            if ($row["email_verified"]) {
+            if ($row['role'] === 'banned') {
+                $error = 'Dein Konto wurde gesperrt. Bitte wende dich an den Support.';
+            } elseif ($row["email_verified"]) {
                 session_regenerate_id(true);
                 $_SESSION["user_id"] = $row["user_id"];
                 $_SESSION["name"]    = $row["name"];

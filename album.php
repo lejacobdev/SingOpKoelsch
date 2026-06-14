@@ -42,6 +42,11 @@ foreach ($songs as $s) {
     if ($cover && $year) break;
 }
 
+// #84 Sponsor-Badges
+$conn->query("CREATE TABLE IF NOT EXISTS singopkoelsch_band_sponsors (id INT AUTO_INCREMENT PRIMARY KEY, band_id INT NOT NULL, name VARCHAR(100) NOT NULL, url VARCHAR(255), tier VARCHAR(32) DEFAULT 'standard', INDEX idx_band (band_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+$_sr = $conn->query("SELECT name, url, tier FROM singopkoelsch_band_sponsors WHERE band_id = $bandId");
+$sponsors = $_sr ? $_sr->fetch_all(MYSQLI_ASSOC) : [];
+
 $pageTitle = $album . ' – ' . $bandName . ' – Sing op Kölsch';
 require_once "partials/head.php";
 require_once "partials/nav.php";
@@ -70,6 +75,24 @@ require_once "partials/nav.php";
     </div>
   </div>
 
+  <?php if (!empty($sponsors)): ?>
+  <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin:-0.5rem 0 1.25rem;">
+    <span style="font-size:0.72rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-3);">Gesponsert von</span>
+    <?php foreach ($sponsors as $sp): ?>
+      <?php $tierColor = $sp['tier'] === 'gold' ? '#f59e0b' : ($sp['tier'] === 'silver' ? '#94a3b8' : 'var(--primary)'); ?>
+      <?php if (!empty($sp['url'])): ?>
+        <a href="<?= htmlspecialchars($sp['url']) ?>" target="_blank" rel="noopener sponsored" style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.25rem 0.65rem;background:rgba(255,255,255,0.05);border:1px solid <?= $tierColor ?>;border-radius:999px;font-size:0.78rem;color:var(--text-2);text-decoration:none;font-weight:600;">
+          <span style="color:<?= $tierColor ?>;">★</span> <?= htmlspecialchars($sp['name']) ?>
+        </a>
+      <?php else: ?>
+        <span style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.25rem 0.65rem;background:rgba(255,255,255,0.05);border:1px solid <?= $tierColor ?>;border-radius:999px;font-size:0.78rem;color:var(--text-2);font-weight:600;">
+          <span style="color:<?= $tierColor ?>;">★</span> <?= htmlspecialchars($sp['name']) ?>
+        </span>
+      <?php endif; ?>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+
   <div class="album-track-list">
     <?php foreach ($songs as $i => $s): ?>
       <div class="album-track">
@@ -87,6 +110,26 @@ require_once "partials/nav.php";
         <?php endif; ?>
       </div>
     <?php endforeach; ?>
+  </div>
+
+  <!-- #16 Band-Biografie: Wikipedia-Link + Bandseite -->
+  <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+      <a href="/lieder.php?band=<?= (int)$bandId ?>"
+         style="display:inline-flex;align-items:center;gap:0.45rem;padding:0.55rem 1rem;background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.2);border-radius:999px;font-size:0.85rem;font-weight:600;color:var(--text);text-decoration:none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        Alle Songs von <?= htmlspecialchars($bandName) ?>
+      </a>
+      <a href="https://de.wikipedia.org/wiki/<?= urlencode($bandName) ?>" target="_blank" rel="noopener noreferrer"
+         style="display:inline-flex;align-items:center;gap:0.45rem;padding:0.55rem 1rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:999px;font-size:0.85rem;font-weight:500;color:var(--text-2);text-decoration:none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Wikipedia
+      </a>
+      <a href="https://www.youtube.com/results?search_query=<?= urlencode($bandName . ' ' . $album) ?>" target="_blank" rel="noopener noreferrer"
+         style="display:inline-flex;align-items:center;gap:0.45rem;padding:0.55rem 1rem;background:rgba(255,0,0,0.06);border:1px solid rgba(255,0,0,0.15);border-radius:999px;font-size:0.85rem;font-weight:500;color:var(--text-2);text-decoration:none;">
+        ▶ YouTube
+      </a>
+    </div>
   </div>
 
 </main>

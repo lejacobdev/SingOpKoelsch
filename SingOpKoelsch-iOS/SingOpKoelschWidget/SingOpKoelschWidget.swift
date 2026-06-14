@@ -1,3 +1,4 @@
+// SingOpKoelschWidget/SingOpKoelschWidget.swift
 import WidgetKit
 import SwiftUI
 import AppIntents
@@ -33,12 +34,10 @@ struct SongProvider: AppIntentTimelineProvider {
     private let appGroup = "group.de.singopkoelsch.app"
     private let tokenKey = "widget_auth_token"
 
-    // Read token from App Group UserDefaults, then fall back to the main app's Keychain
     private func loadToken() -> String? {
         if let t = UserDefaults(suiteName: appGroup)?.string(forKey: tokenKey), !t.isEmpty {
             return t
         }
-        // Fallback: read directly from the shared Keychain (same service/account as AuthManager)
         let query: [CFString: Any] = [
             kSecClass:       kSecClassGenericPassword,
             kSecAttrService: "de.singopkoelsch.app",
@@ -71,8 +70,7 @@ struct SongProvider: AppIntentTimelineProvider {
     private func fetch(mode: WidgetSongMode) async -> SongEntry {
         var request: URLRequest
 
-        if mode == .favorites,
-           let token = loadToken() {
+        if mode == .favorites, let token = loadToken() {
             request = URLRequest(url: URL(string: "https://singopkoelsch.de/api/songs/random/favorite")!)
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         } else {
@@ -110,6 +108,7 @@ struct SongWidgetEntryView: View {
             switch family {
             case .systemSmall:          SmallView(song: song, coverImage: entry.coverImage, mode: entry.mode)
             case .systemMedium:         MediumView(song: song, coverImage: entry.coverImage, mode: entry.mode)
+            case .systemExtraLarge:     StandByView(song: song, coverImage: entry.coverImage)
             case .accessoryRectangular: LockRectView(song: song)
             case .accessoryCircular:    LockCircleView(song: song)
             default:                    SmallView(song: song, coverImage: entry.coverImage, mode: entry.mode)
@@ -206,7 +205,6 @@ private struct MediumView: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            // Album cover / placeholder
             ZStack {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(surface)
@@ -228,7 +226,6 @@ private struct MediumView: View {
             )
 
             VStack(alignment: .leading, spacing: 0) {
-                // Branding row
                 HStack(spacing: 5) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 4, style: .continuous)
@@ -282,6 +279,81 @@ private struct MediumView: View {
     }
 }
 
+// MARK: - #39 StandBy / ExtraLarge View
+
+private struct StandByView: View {
+    let song: RandomSong
+    let coverImage: UIImage?
+
+    private let appBg  = Color(red: 13/255, green: 17/255, blue: 23/255)
+    private let red    = Color(red: 220/255, green: 38/255, blue: 38/255)
+
+    var body: some View {
+        HStack(spacing: 24) {
+            // Large cover art
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color(red: 28/255, green: 33/255, blue: 40/255))
+                if let img = coverImage {
+                    Image(uiImage: img)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                } else {
+                    Image(systemName: "music.note")
+                        .font(.system(size: 60, weight: .thin))
+                        .foregroundStyle(.white.opacity(0.3))
+                }
+            }
+            .frame(width: 200, height: 200)
+
+            VStack(alignment: .leading, spacing: 12) {
+                // Branding
+                HStack(spacing: 8) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(red)
+                            .frame(width: 28, height: 28)
+                        Text("S")
+                            .font(.system(size: 16, weight: .black))
+                            .foregroundStyle(.white)
+                    }
+                    Text("Sing op Kölsch")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+
+                Spacer()
+
+                Text(song.title)
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(.white)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.7)
+
+                Text(song.bandName)
+                    .font(.system(size: 18))
+                    .foregroundStyle(.white.opacity(0.65))
+                    .lineLimit(2)
+
+                Spacer()
+
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.right.circle.fill")
+                        .foregroundStyle(red)
+                    Text("Liedtext öffnen")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(24)
+        .containerBackground(appBg, for: .widget)
+        .widgetURL(URL(string: "singopkoelsch://song/\(song.id)"))
+    }
+}
+
 // MARK: - Lock Screen Views
 
 private struct LockRectView: View {
@@ -322,7 +394,291 @@ private struct LockCircleView: View {
     }
 }
 
-// MARK: - Widget Declaration
+// MARK: - #43 Recently Viewed Widget
+
+struct RecentlyViewedEntry: TimelineEntry {
+    let date: Date
+    let songs: [RandomSong]
+}
+
+struct RecentlyViewedProvider: TimelineProvider {
+    private let appGroup = "group.de.singopkoelsch.app"
+
+    func placeholder(in context: Context) -> RecentlyViewedEntry {
+        RecentlyViewedEntry(date: .now, songs: [
+            RandomSong(id: 1, title: "Et jitt kei Wood", bandName: "Bläck Fööss", coverUrl: nil)
+        ])
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (RecentlyViewedEntry) -> Void) {
+        Task {
+            let songs = await fetchRecentSongs()
+            completion(RecentlyViewedEntry(date: .now, songs: songs))
+        }
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<RecentlyViewedEntry>) -> Void) {
+        Task {
+            let songs = await fetchRecentSongs()
+            let entry = RecentlyViewedEntry(date: .now, songs: songs)
+            let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: .now)!
+            completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
+        }
+    }
+
+    private func fetchRecentSongs() async -> [RandomSong] {
+        let defaults = UserDefaults(suiteName: appGroup)
+        let ids = defaults?.array(forKey: "recently_viewed") as? [Int] ?? []
+        guard !ids.isEmpty else { return [] }
+
+        let session = URLSession(configuration: .ephemeral)
+        var songs: [RandomSong] = []
+        for id in ids.prefix(5) {
+            if let url = URL(string: "https://singopkoelsch.de/api/songs/\(id)"),
+               let (data, _) = try? await session.data(from: url) {
+                struct Envelope: Decodable { let ok: Bool; let data: RandomSong? }
+                if let song = (try? JSONDecoder().decode(Envelope.self, from: data))?.data {
+                    songs.append(song)
+                }
+            }
+        }
+        return songs
+    }
+}
+
+struct RecentlyViewedEntryView: View {
+    let entry: RecentlyViewedEntry
+    private let red = Color(red: 220/255, green: 38/255, blue: 38/255)
+    private let appBg = Color(red: 13/255, green: 17/255, blue: 23/255)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: "clock.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(red)
+                Text("Zuletzt angesehen")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .textCase(.uppercase)
+                    .kerning(0.4)
+            }
+            .padding(.bottom, 8)
+
+            if entry.songs.isEmpty {
+                Spacer()
+                Text("Noch keine Songs angesehen")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.4))
+                Spacer()
+            } else {
+                ForEach(entry.songs.prefix(4), id: \.id) { song in
+                    Link(destination: URL(string: "singopkoelsch://song/\(song.id)")!) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "music.note")
+                                .font(.system(size: 10))
+                                .foregroundStyle(red.opacity(0.8))
+                                .frame(width: 14)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(song.title)
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .lineLimit(1)
+                                Text(song.bandName)
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.white.opacity(0.5))
+                                    .lineLimit(1)
+                            }
+                        }
+                        .padding(.vertical, 3)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .containerBackground(appBg, for: .widget)
+    }
+}
+
+struct RecentlyViewedWidget: Widget {
+    let kind = "RecentlyViewedWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: RecentlyViewedProvider()) { entry in
+            RecentlyViewedEntryView(entry: entry)
+        }
+        .configurationDisplayName("Zuletzt angesehen")
+        .description("Zeigt die zuletzt angesehenen Songs.")
+        .supportedFamilies([.systemSmall, .systemMedium])
+        .contentMarginsDisabled()
+    }
+}
+
+// MARK: - #44 Karneval Countdown Widget
+
+struct KarnevalEntry: TimelineEntry {
+    let date: Date
+    let daysUntil: Int
+    let isKarneval: Bool
+}
+
+struct KarnevalProvider: TimelineProvider {
+    func placeholder(in context: Context) -> KarnevalEntry {
+        KarnevalEntry(date: .now, daysUntil: 42, isKarneval: false)
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (KarnevalEntry) -> Void) {
+        completion(makeEntry())
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<KarnevalEntry>) -> Void) {
+        let entry = makeEntry()
+        // Refresh daily at midnight
+        let nextMidnight = Calendar.current.startOfDay(for: Calendar.current.date(byAdding: .day, value: 1, to: .now)!)
+        completion(Timeline(entries: [entry], policy: .after(nextMidnight)))
+    }
+
+    private func makeEntry() -> KarnevalEntry {
+        let today = Date()
+        let year = Calendar.current.component(.year, from: today)
+        let (days, isKarneval) = karnevalCountdown(from: today, year: year)
+        return KarnevalEntry(date: today, daysUntil: days, isKarneval: isKarneval)
+    }
+
+    private func karnevalCountdown(from today: Date, year: Int) -> (Int, Bool) {
+        let weiberfastnacht = easterBasedDate(year: year, offsetFromEaster: -52) // Thursday before Ash Wednesday
+        let ashWednesday = easterBasedDate(year: year, offsetFromEaster: -46)
+
+        let cal = Calendar.current
+        let todayStart = cal.startOfDay(for: today)
+
+        // Check if currently in Karneval
+        if todayStart >= cal.startOfDay(for: weiberfastnacht) &&
+           todayStart <= cal.startOfDay(for: ashWednesday) {
+            return (0, true)
+        }
+
+        // Calculate days until Weiberfastnacht this year or next year
+        if weiberfastnacht > todayStart {
+            let days = cal.dateComponents([.day], from: todayStart, to: cal.startOfDay(for: weiberfastnacht)).day ?? 0
+            return (days, false)
+        } else {
+            // Look to next year
+            let nextWeiberfastnacht = easterBasedDate(year: year + 1, offsetFromEaster: -52)
+            let days = cal.dateComponents([.day], from: todayStart, to: cal.startOfDay(for: nextWeiberfastnacht)).day ?? 0
+            return (days, false)
+        }
+    }
+
+    /// Returns the date that is `offsetFromEaster` days relative to Easter Sunday for the given year.
+    private func easterBasedDate(year: Int, offsetFromEaster: Int) -> Date {
+        let easter = easterDate(year: year)
+        return Calendar.current.date(byAdding: .day, value: offsetFromEaster, to: easter)!
+    }
+
+    private func easterDate(year: Int) -> Date {
+        let a = year % 19
+        let b = year / 100
+        let c = year % 100
+        let d = b / 4
+        let e = b % 4
+        let f = (b + 8) / 25
+        let g = (b - f + 1) / 3
+        let h = (19 * a + b - d - g + 15) % 30
+        let i = c / 4
+        let k = c % 4
+        let l = (32 + 2 * e + 2 * i - h - k) % 7
+        let m = (a + 11 * h + 22 * l) / 451
+        let month = (h + l - 7 * m + 114) / 31
+        let day   = ((h + l - 7 * m + 114) % 31) + 1
+        var comps = DateComponents()
+        comps.year = year; comps.month = month; comps.day = day
+        return Calendar.current.date(from: comps)!
+    }
+}
+
+struct KarnevalWidgetView: View {
+    let entry: KarnevalEntry
+    @Environment(\.widgetFamily) var family
+
+    private let red   = Color(red: 220/255, green: 38/255, blue: 38/255)
+    private let appBg = Color(red: 13/255, green: 17/255, blue: 23/255)
+
+    var body: some View {
+        switch family {
+        case .accessoryRectangular:
+            lockScreenView
+        default:
+            smallView
+        }
+    }
+
+    private var smallView: some View {
+        VStack(spacing: 8) {
+            Text("🎭")
+                .font(.system(size: 36))
+
+            if entry.isKarneval {
+                Text("Alaaf!")
+                    .font(.system(size: 20, weight: .black))
+                    .foregroundStyle(red)
+                Text("Karneval!")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.white.opacity(0.7))
+            } else {
+                Text("\(entry.daysUntil)")
+                    .font(.system(size: 36, weight: .black))
+                    .foregroundStyle(.white)
+                Text("Tage bis Karneval")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.65))
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .containerBackground(appBg, for: .widget)
+    }
+
+    private var lockScreenView: some View {
+        HStack(spacing: 8) {
+            Text("🎭")
+                .font(.system(size: 20))
+            if entry.isKarneval {
+                Text("Karneval – Alaaf!")
+                    .font(.system(size: 13, weight: .bold))
+                    .lineLimit(1)
+            } else {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("\(entry.daysUntil) Tage bis Karneval")
+                        .font(.system(size: 13, weight: .bold))
+                        .lineLimit(1)
+                    Text("Sing op Kölsch")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .containerBackground(.clear, for: .widget)
+    }
+}
+
+struct KarnevalWidget: Widget {
+    let kind = "KarnevalWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: KarnevalProvider()) { entry in
+            KarnevalWidgetView(entry: entry)
+        }
+        .configurationDisplayName("Karneval-Countdown")
+        .description("Zeigt die Tage bis zum nächsten Kölner Karneval (Weiberfastnacht).")
+        .supportedFamilies([.systemSmall, .accessoryRectangular])
+        .contentMarginsDisabled()
+    }
+}
+
+// MARK: - Main Widget Declaration
 
 struct SingOpKoelschWidget: Widget {
     let kind = "SingOpKoelschWidget"
@@ -333,7 +689,13 @@ struct SingOpKoelschWidget: Widget {
         }
         .configurationDisplayName("Sing op Kölsch")
         .description("Zufälliger Song oder Lieblingslied auf dem Homescreen.")
-        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryCircular])
+        .supportedFamilies([
+            .systemSmall,
+            .systemMedium,
+            .systemExtraLarge,   // #39 StandBy
+            .accessoryRectangular,
+            .accessoryCircular
+        ])
         .contentMarginsDisabled()
     }
 }

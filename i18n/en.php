@@ -135,7 +135,7 @@ return [
     'list.group_meta'      => '💿 Album & authors',
     'list.heading_prefix'  => 'Song',
     'list.heading_accent'  => 'list',
-    'list.subtitle'        => 'Browse all {n} Cologne dialect songs or find what you need.',
+    'list.subtitle'        => 'Browse Cologne dialect songs or find what you need.',
     'list.search_ph2'      => 'Search title, artist, album or lyrics…',
     'list.clear_search'    => 'Clear search',
     'list.filter_artist'   => 'Artist',
@@ -427,4 +427,7 @@ return [
     'songbook.title'       => 'Songbook generator',
     'songbook.generate'    => 'Generate songbook',
     'songbook.download'    => 'Download',
+
+    // ── Lazy loading ──
+    'lieder.load_more'     => 'Load more',
 ];

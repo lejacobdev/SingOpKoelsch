@@ -404,7 +404,7 @@ class Database {
      *            'has_lyrics' => bool, 'has_spotify' => bool, 'has_video' => bool]
      * $sort:    'title' | 'title_desc' | 'year' | 'year_desc' | 'band'
      */
-    public static function queryFiltered(string $search, array $filters = [], string $sort = 'title'): array {
+    public static function queryFiltered(string $search, array $filters = [], string $sort = 'title', ?int $limit = null, int $offset = 0): array {
         $conn  = self::getConnection();
         $where = [];
         $types = '';
@@ -459,6 +459,14 @@ class Database {
             $where[] = 'l.release_year <= ?';
             $types  .= 'i';
             $vals[]  = (int)$filters['year_to'];
+        }
+        // #51 Filter: decade
+        if (!empty($filters['decade'])) {
+            $d = (int)$filters['decade'];
+            $where[] = 'l.release_year >= ? AND l.release_year < ?';
+            $types  .= 'ii';
+            $vals[]  = $d;
+            $vals[]  = $d + 10;
         }
 
         // Filter: has lyrics / Spotify / video
@@ -539,12 +547,87 @@ class Database {
                 $whereSql
                 ORDER BY $orderBy";
 
+        if ($limit !== null) {
+            $sql .= ' LIMIT ? OFFSET ?';
+            $types .= 'ii';
+            $vals[] = $limit;
+            $vals[] = $offset;
+        }
+
         $stmt = $conn->prepare($sql);
         if ($types !== '') $stmt->bind_param($types, ...$vals);
         $stmt->execute();
         $data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $stmt->close();
         return $data;
+    }
+
+    public static function queryFilteredCount(string $search, array $filters = []): int {
+        $conn  = self::getConnection();
+        $where = [];
+        $types = '';
+        $vals  = [];
+
+        $hasSearch = $search !== '';
+        if ($hasSearch) {
+            $like = "%$search%";
+            $where[] = "(l.title LIKE ? OR b.band_name LIKE ? OR l.lyrics LIKE ?
+                       OR l.album LIKE ? OR l.release_year LIKE ?
+                       OR ta.band_name LIKE ? OR ma.band_name LIKE ?)";
+            $types .= str_repeat('s', 7);
+            for ($i = 0; $i < 7; $i++) $vals[] = $like;
+        }
+
+        if (!empty($filters['band_id'])) {
+            $where[] = 'l.band_id = ?'; $types .= 'i'; $vals[] = (int)$filters['band_id'];
+        }
+        if (!empty($filters['text_autor_id'])) {
+            $where[] = 'l.text_autor_id = ?'; $types .= 'i'; $vals[] = (int)$filters['text_autor_id'];
+        }
+        if (!empty($filters['musik_autor_id'])) {
+            $where[] = 'l.musik_autor_id = ?'; $types .= 'i'; $vals[] = (int)$filters['musik_autor_id'];
+        }
+        if (!empty($filters['event_id'])) {
+            $where[] = 'EXISTS (SELECT 1 FROM singopkoelsch_song_events se WHERE se.song_id = l.id AND se.event_id = ?)';
+            $types .= 'i'; $vals[] = (int)$filters['event_id'];
+        }
+        if (!empty($filters['year_from'])) {
+            $where[] = 'l.release_year >= ?'; $types .= 'i'; $vals[] = (int)$filters['year_from'];
+        }
+        if (!empty($filters['year_to'])) {
+            $where[] = 'l.release_year <= ?'; $types .= 'i'; $vals[] = (int)$filters['year_to'];
+        }
+        if (!empty($filters['decade'])) {
+            $d = (int)$filters['decade'];
+            $where[] = 'l.release_year >= ? AND l.release_year < ?';
+            $types .= 'ii'; $vals[] = $d; $vals[] = $d + 10;
+        }
+        if (!empty($filters['has_lyrics']))  $where[] = 'LENGTH(COALESCE(l.lyrics, "")) > 50';
+        if (!empty($filters['has_spotify'])) $where[] = "(l.spotify_link IS NOT NULL AND l.spotify_link != '')";
+        if (!empty($filters['has_video']))   $where[] = "(l.video_link IS NOT NULL AND l.video_link != '')";
+        if (!empty($filters['incomplete'])) {
+            $where[] = "(l.album IS NULL OR l.album = '' OR l.release_year IS NULL OR l.release_year = 0
+                OR l.text_autor_id IS NULL OR l.musik_autor_id IS NULL
+                OR l.cover_url IS NULL OR l.cover_url = ''
+                OR l.spotify_link IS NULL OR l.spotify_link = ''
+                OR LENGTH(COALESCE(l.lyrics, '')) < 50)";
+        }
+        if (!empty($filters['flagged'])) $where[] = 'l.flagged = 1';
+
+        $whereSql = empty($where) ? '' : 'WHERE ' . implode(' AND ', $where);
+
+        $sql = "SELECT COUNT(*) FROM singopkoelsch_lyrics l
+                LEFT JOIN singopkoelsch_bands b  ON l.band_id       = b.band_id
+                LEFT JOIN singopkoelsch_bands ta ON l.text_autor_id = ta.band_id
+                LEFT JOIN singopkoelsch_bands ma ON l.musik_autor_id= ma.band_id
+                $whereSql";
+
+        $stmt = $conn->prepare($sql);
+        if ($types !== '') $stmt->bind_param($types, ...$vals);
+        $stmt->execute();
+        $count = (int)$stmt->get_result()->fetch_row()[0];
+        $stmt->close();
+        return $count;
     }
 
     public static function queryDataBySearch(string $search): array {
@@ -1128,6 +1211,70 @@ class Database {
         if ($r && $r->num_rows === 0) {
             $conn->query("ALTER TABLE singopkoelsch_change_requests ADD COLUMN resolved_at TIMESTAMP NULL DEFAULT NULL");
         }
+    }
+
+    // #71 Points + #72 Badges schema + helpers
+    public static function ensurePointsSystem(): void {
+        $conn = self::getConnection();
+        $r = $conn->query("SHOW COLUMNS FROM singopkoelsch_users LIKE 'points'");
+        if ($r && $r->num_rows === 0) {
+            $conn->query("ALTER TABLE singopkoelsch_users ADD COLUMN points INT NOT NULL DEFAULT 0");
+        }
+        $conn->query(
+            "CREATE TABLE IF NOT EXISTS singopkoelsch_user_badges (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                badge_key VARCHAR(64) NOT NULL,
+                awarded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uniq_badge (user_id, badge_key),
+                INDEX idx_user (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+        );
+    }
+
+    public static function awardPoints(int $userId, int $points): void {
+        $conn = self::getConnection();
+        $stmt = $conn->prepare("UPDATE singopkoelsch_users SET points = points + ? WHERE user_id = ?");
+        $stmt->bind_param("ii", $points, $userId);
+        $stmt->execute(); $stmt->close();
+        self::checkAndAwardBadges($userId);
+    }
+
+    public static function awardBadge(int $userId, string $badgeKey): void {
+        $conn = self::getConnection();
+        $stmt = $conn->prepare("INSERT IGNORE INTO singopkoelsch_user_badges (user_id, badge_key) VALUES (?, ?)");
+        $stmt->bind_param("is", $userId, $badgeKey);
+        $stmt->execute(); $stmt->close();
+    }
+
+    public static function checkAndAwardBadges(int $userId): void {
+        $conn = self::getConnection();
+        $stmt = $conn->prepare("SELECT points FROM singopkoelsch_users WHERE user_id = ?");
+        $stmt->bind_param("i", $userId); $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc(); $stmt->close();
+        $pts = (int)($row['points'] ?? 0);
+
+        $stmt2 = $conn->prepare("SELECT COUNT(*) as c FROM singopkoelsch_change_requests WHERE user_id = ?");
+        $stmt2->bind_param("i", $userId); $stmt2->execute();
+        $cr = (int)$stmt2->get_result()->fetch_assoc()['c']; $stmt2->close();
+
+        $stmt3 = $conn->prepare("SELECT COUNT(*) as c FROM singopkoelsch_change_requests WHERE user_id = ? AND status = 'approved'");
+        $stmt3->bind_param("i", $userId); $stmt3->execute();
+        $approved = (int)$stmt3->get_result()->fetch_assoc()['c']; $stmt3->close();
+
+        if ($cr >= 1)   self::awardBadge($userId, 'first_proposal');
+        if ($approved >= 1)  self::awardBadge($userId, 'first_approved');
+        if ($approved >= 10) self::awardBadge($userId, 'contributor_10');
+        if ($approved >= 50) self::awardBadge($userId, 'contributor_50');
+        if ($pts >= 100) self::awardBadge($userId, 'points_100');
+        if ($pts >= 500) self::awardBadge($userId, 'points_500');
+    }
+
+    public static function getUserBadges(int $userId): array {
+        $conn = self::getConnection();
+        $stmt = $conn->prepare("SELECT badge_key, awarded_at FROM singopkoelsch_user_badges WHERE user_id = ? ORDER BY awarded_at ASC");
+        $stmt->bind_param("i", $userId); $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
     public static function getUserPreferences(int $userId): array {

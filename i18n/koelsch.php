@@ -135,7 +135,7 @@ return [
     'list.group_meta'      => '💿 Album & Schriever',
     'list.heading_prefix'  => 'Leeder',
     'list.heading_accent'  => 'list',
-    'list.subtitle'        => 'Durchstöver all {n} kölsche Leeder oder söck jet janz bestimmtes.',
+    'list.subtitle'        => 'Durchstöver kölsche Leeder oder söck jet janz bestimmtes.',
     'list.search_ph2'      => 'Tittel, Künstler, Album oder Tex söke…',
     'list.clear_search'    => 'Söck leer maache',
     'list.filter_artist'   => 'Künstler',
@@ -427,4 +427,7 @@ return [
     'songbook.title'       => 'Leederbooch-Mascheen',
     'songbook.generate'    => 'Leederbooch erstelle',
     'songbook.download'    => 'Eroflade',
+
+    // ── Lazy loading ──
+    'lieder.load_more'     => 'Mih lade',
 ];

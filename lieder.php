@@ -9,6 +9,7 @@ Database::ensurePreferencesTable();
 $query    = trim($_GET["lyrics"] ?? "");
 $bandId   = (int)($_GET["band"]  ?? 0);
 $sort     = $_GET["sort"] ?? 'title';
+$decade   = (int)($_GET["decade"] ?? 0);  // #51 Jahrzehnt-Filter
 $hasFlags = [
     'has_lyrics'  => !empty($_GET["lyrics_only"]),
     'has_spotify' => !empty($_GET["spotify_only"]),
@@ -19,12 +20,16 @@ $hasFlags = [
 
 $filters = array_merge([
     'band_id'  => $bandId ?: null,
+    'decade'   => $decade ?: null,
 ], $hasFlags);
 
 $_isAdmin = function_exists('isAdmin') && isAdmin();
 
-// ── Fetch ──────────────────────────────────────────────────
-$lyrics  = Database::queryFiltered($query, $filters, $sort);
+// ── Fetch (#61 Lazy Loading) ───────────────────────────────
+$_limit  = 100;
+$_offset = max(0, (int)($_GET['offset'] ?? 0));
+$lyrics  = Database::queryFiltered($query, $filters, $sort, $_limit, $_offset);
+$_totalCount = Database::queryFilteredCount($query, $filters);
 $bandMap = Database::getBandMap();
 $songEvents = []; // legacy placeholder — events feature removed
 
@@ -34,6 +39,7 @@ $allBands = Database::getBandList();
 // Active filter count
 $activeFilterCount = 0;
 if ($bandId) $activeFilterCount++;
+if ($decade) $activeFilterCount++;
 foreach ($hasFlags as $f) if ($f) $activeFilterCount++;
 if ($sort !== 'title') $activeFilterCount++;
 $isSearch = $query !== "";
@@ -178,7 +184,22 @@ $showAuthors = !empty($bandId);
 
 // ── AJAX endpoint ──────────────────────────────────────────
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
-    echo _renderSongList($lyrics, $bandMap, $songEvents, $isSearch, $sort, $showAuthors);
+    if (isset($_GET['offset'])) {
+        // Load-more response: return JSON with HTML + hasMore flag
+        header('Content-Type: application/json');
+        echo json_encode([
+            'html'    => _renderSongList($lyrics, $bandMap, $songEvents, $isSearch, $sort, $showAuthors),
+            'hasMore' => ($_offset + $_limit) < $_totalCount,
+            'offset'  => $_offset + count($lyrics),
+        ]);
+    } else {
+        // Filter response: return JSON with HTML + total count
+        header('Content-Type: application/json');
+        echo json_encode([
+            'html'  => _renderSongList($lyrics, $bandMap, $songEvents, $isSearch, $sort, $showAuthors),
+            'total' => $_totalCount,
+        ]);
+    }
     exit();
 }
 
@@ -821,6 +842,37 @@ html.dark .section-count {
   <?php $openDrawer = false; ?>
   <form class="filter-drawer <?= $openDrawer ? 'open' : '' ?>" method="get" id="filter-form">
     <input type="hidden" name="lyrics" value="<?= htmlspecialchars($query) ?>">
+    <?php if ($bandId): ?>
+      <!-- #50 Follow Band button when viewing by band -->
+      <?php $fbName = htmlspecialchars($bandMap[$bandId] ?? ''); ?>
+      <?php if (!empty($_SESSION['user_id'])): ?>
+        <?php
+          $fbConn = Database::getConnection();
+          $fbConn->query("CREATE TABLE IF NOT EXISTS singopkoelsch_band_follows (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, band_id INT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uniq_follow (user_id, band_id), INDEX idx_user (user_id), INDEX idx_band (band_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+          $fbStmt = $fbConn->prepare("SELECT 1 FROM singopkoelsch_band_follows WHERE user_id=? AND band_id=?");
+          $fbStmt->bind_param("ii", $_SESSION['user_id'], $bandId); $fbStmt->execute();
+          $fbFollowing = (bool)$fbStmt->get_result()->fetch_assoc(); $fbStmt->close();
+          if (isset($_GET['follow_band'])) {
+              if ($_GET['follow_band'] === '1') {
+                  $fi = $fbConn->prepare("INSERT IGNORE INTO singopkoelsch_band_follows (user_id, band_id) VALUES (?,?)");
+                  $fi->bind_param("ii", $_SESSION['user_id'], $bandId); $fi->execute(); $fi->close();
+              } else {
+                  $fd = $fbConn->prepare("DELETE FROM singopkoelsch_band_follows WHERE user_id=? AND band_id=?");
+                  $fd->bind_param("ii", $_SESSION['user_id'], $bandId); $fd->execute(); $fd->close();
+              }
+              header("Location: /lieder.php?band=$bandId"); exit;
+          }
+        ?>
+        <div style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0;font-size:0.85rem;color:var(--text-2);">
+          🎸 <?= $fbName ?>
+          <a href="/lieder.php?band=<?= $bandId ?>&follow_band=<?= $fbFollowing ? '0' : '1' ?>"
+             class="btn btn-sm <?= $fbFollowing ? 'btn-danger' : 'btn-ghost' ?>"
+             style="font-size:0.78rem;padding:0.25rem 0.65rem;">
+            <?= $fbFollowing ? '♥ Gefolgt' : '♡ Band folgen' ?>
+          </a>
+        </div>
+      <?php endif; ?>
+    <?php endif; ?>
 
     <div class="filter-row">
       <div class="filter-group">
@@ -843,6 +895,17 @@ html.dark .section-count {
           <option value="band"       <?= $sort === 'band'       ? 'selected' : '' ?>><?= htmlspecialchars(t('list.sort_band')) ?></option>
           <option value="year"       <?= $sort === 'year'       ? 'selected' : '' ?>><?= htmlspecialchars(t('list.sort_year_asc')) ?></option>
           <option value="year_desc"  <?= $sort === 'year_desc'  ? 'selected' : '' ?>><?= htmlspecialchars(t('list.sort_year_desc')) ?></option>
+        </select>
+      </div>
+
+      <!-- #51 Jahrzehnt-Filter -->
+      <div class="filter-group">
+        <label for="filter-decade">Jahrzehnt</label>
+        <select name="decade" id="filter-decade">
+          <option value="">Alle Jahrzehnte</option>
+          <?php foreach ([1950,1960,1970,1980,1990,2000,2010,2020] as $d): ?>
+            <option value="<?= $d ?>" <?= $decade === $d ? 'selected' : '' ?>><?= $d ?>er</option>
+          <?php endforeach; ?>
         </select>
       </div>
     </div>
@@ -881,7 +944,7 @@ html.dark .section-count {
 
   <!-- ── Active filter summary ───────────────────────────── -->
   <div class="songs-meta" id="songs-meta">
-    <strong id="result-count"><?= count($lyrics) ?></strong> <span id="result-label"><?= htmlspecialchars(count($lyrics) === 1 ? t('list.result') : t('list.results')) ?></span>
+    <strong id="result-count"><?= $_totalCount ?></strong> <span id="result-label"><?= htmlspecialchars($_totalCount === 1 ? t('list.result') : t('list.results')) ?></span>
     <?php if ($query): ?>
       <span class="active-filter-chip" data-chip="lyrics">
         🔍 "<?= htmlspecialchars($query) ?>"
@@ -914,6 +977,15 @@ html.dark .section-count {
     <?= _renderSongList($lyrics, $bandMap, $songEvents, $isSearch, $sort, $showAuthors) ?>
   </div>
 
+  <?php if (($_offset + $_limit) < $_totalCount): ?>
+  <div id="load-more-sentinel" style="height:60px;display:flex;align-items:center;justify-content:center;margin:0.5rem 0 1.5rem;">
+    <button id="load-more-btn" class="btn btn-ghost" style="min-width:160px;" onclick="loadMoreSongs()">
+      <?= htmlspecialchars(t('lieder.load_more', ['n' => min($_limit, $_totalCount - $_offset - count($lyrics))])) ?>
+    </button>
+    <span id="load-more-spinner" style="display:none;color:var(--text-3);font-size:0.9rem;">Wird geladen…</span>
+  </div>
+  <?php endif; ?>
+
 </main>
 
 <script>
@@ -932,6 +1004,54 @@ const micButton    = document.getElementById("mic-button");
 const songList     = document.getElementById("song-list");
 
 let isRecording = false, mediaRecorder, mediaStream, chunks = [];
+
+// ── Lazy loading state (#61) ─────────────────────────
+let _lmOffset  = <?= (int)($_offset + count($lyrics)) ?>;
+let _lmTotal   = <?= (int)$_totalCount ?>;
+let _lmLimit   = <?= (int)$_limit ?>;
+let _lmLoading = false;
+
+function loadMoreSongs() {
+  if (_lmLoading || _lmOffset >= _lmTotal) return;
+  _lmLoading = true;
+  const btn     = document.getElementById('load-more-btn');
+  const spinner = document.getElementById('load-more-spinner');
+  if (btn)     btn.style.display = 'none';
+  if (spinner) spinner.style.display = '';
+
+  const url = new URL(window.location.href);
+  url.searchParams.set('ajax', '1');
+  url.searchParams.set('offset', _lmOffset);
+
+  fetch(url.toString())
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('song-list').insertAdjacentHTML('beforeend', data.html);
+      _lmOffset = data.offset;
+      const sentinel = document.getElementById('load-more-sentinel');
+      if (data.hasMore) {
+        if (btn)     { btn.style.display = ''; btn.textContent = 'Mehr laden'; }
+        if (spinner) spinner.style.display = 'none';
+      } else if (sentinel) {
+        sentinel.remove();
+      }
+    })
+    .catch(() => {
+      if (btn)     btn.style.display = '';
+      if (spinner) spinner.style.display = 'none';
+    })
+    .finally(() => { _lmLoading = false; });
+}
+
+// Auto-load when sentinel scrolls into view
+(function() {
+  const sentinel = document.getElementById('load-more-sentinel');
+  if (!sentinel || !window.IntersectionObserver) return;
+  const obs = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) loadMoreSongs();
+  }, { rootMargin: '200px' });
+  obs.observe(sentinel);
+})();
 
 // ── Active filter state ──────────────────────────────
 function _val(name, fallback = '') {
@@ -1038,11 +1158,10 @@ function applyFilters(pushHistory = true) {
   }
   document.body.classList.add('songs-loading');
   fetch(buildUrl(s, true))
-    .then(r => r.text())
-    .then(html => {
-      songList.innerHTML = html.trim();
-      // Update result count (count song-card entries)
-      const n = songList.querySelectorAll('.song-card').length;
+    .then(r => r.json())
+    .then(data => {
+      songList.innerHTML = data.html.trim();
+      const n = data.total;
       resultCount.textContent = n;
       resultLabel.textContent = n !== 1 ? 'Ergebnisse' : 'Ergebnis';
       updateChips(s);

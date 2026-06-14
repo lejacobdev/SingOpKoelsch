@@ -9,9 +9,9 @@
     <key>CFBundleName</key>
     <string>SingOpKoelsch</string>
     <key>CFBundleShortVersionString</key>
-    <string>3.0</string>
+    <string>3.1</string>
     <key>CFBundleVersion</key>
-    <string>20</string>
+    <string>21</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleURLTypes</key>

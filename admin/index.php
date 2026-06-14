@@ -88,6 +88,8 @@ require_once "../partials/nav.php";
       <a href="/admin/clean_bands.php" class="btn btn-secondary"><?= htmlspecialchars(t('admin.clean_bands')) ?></a>
       <a href="/admin/stats.php" class="btn btn-secondary">📈 Statistiken</a>
       <a href="/admin/duplicates.php" class="btn btn-secondary">🔍 Duplikate</a>
+      <a href="/admin/cover-search.php" class="btn btn-secondary">🎨 Cover-Suche</a>
+      <a href="/admin/bulk-actions.php" class="btn btn-secondary">⚡ Bulk-Aktionen</a>
       <a href="/liederbuch.php" class="btn btn-secondary"><?= htmlspecialchars(t('nav.songbook')) ?></a>
     </div>
   </div>

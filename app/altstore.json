@@ -1,125 +1,133 @@
 {
-    "name": "Sing op Kölsch",
-    "identifier": "de.singopkoelsch.altstore",
-    "subtitle": "Dat kölsche Liederbuch",
-    "iconURL": "https://singopkoelsch.de/app/icon.png",
-    "website": "https://singopkoelsch.de",
-    "tintColor": "DC2626",
-    "apps": [
+  "name": "Sing op Kölsch",
+  "identifier": "de.singopkoelsch.altstore",
+  "subtitle": "Dat kölsche Liederbuch",
+  "iconURL": "https://singopkoelsch.de/app/icon.png",
+  "website": "https://singopkoelsch.de",
+  "tintColor": "DC2626",
+  "apps": [
+    {
+      "name": "Sing op Kölsch",
+      "bundleIdentifier": "de.singopkoelsch.app",
+      "developerName": "singopkoelsch.de",
+      "subtitle": "Dat kölsche Liederbuch op dingem iPhone",
+      "localizedDescription": "Sing op Kölsch – die App zum kölschen Liederbuch. Suche Lieder, lies Texte mit, schlage Textänderungen vor und verwalte dein Profil – alles im Design der Website.\n\nNeu: Favoriten speichern, Songs per QR-Code teilen, Onboarding-Tour beim ersten Start, Push-Benachrichtigungen wenn Vorschläge beantwortet werden.\n\nHinweis: Installiert über AltStore / SideStore mit deiner Apple-ID.",
+      "iconURL": "https://singopkoelsch.de/app/icon.png",
+      "tintColor": "DC2626",
+      "category": "music",
+      "screenshotURLs": [],
+      "version": "3.1",
+      "versionDate": "2026-06-14",
+      "versionDescription": "Dunkelmodus-Sync, Screenshot-Teilen, Haptic Feedback, Live Activity, Share Extension, Quick Actions, Focus Filter, StandBy-Widget, Schriftgröße, Favoriten-Swipe, Song-Notizen, Zuletzt-angesehen-Widget, Karneval-Countdown, Karneval-App-Icon.",
+      "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+      "size": 636917,
+      "versions": [
         {
-            "name": "Sing op Kölsch",
-            "bundleIdentifier": "de.singopkoelsch.app",
-            "developerName": "singopkoelsch.de",
-            "subtitle": "Dat kölsche Liederbuch op dingem iPhone",
-            "localizedDescription": "Sing op Kölsch – die App zum kölschen Liederbuch. Suche Lieder, lies Texte mit, schlage Textänderungen vor und verwalte dein Profil – alles im Design der Website.\n\nNeu: Favoriten speichern, Songs per QR-Code teilen, Onboarding-Tour beim ersten Start, Push-Benachrichtigungen wenn Vorschläge beantwortet werden.\n\nHinweis: Installiert über AltStore / SideStore mit deiner Apple-ID.",
-            "iconURL": "https://singopkoelsch.de/app/icon.png",
-            "tintColor": "DC2626",
-            "category": "music",
-            "screenshotURLs": [],
-            "version": "3.0",
-            "versionDate": "2026-06-14",
-            "versionDescription": "Shazam-Button, Lock Screen Widget, Siri Shortcut, Song-Statistiken im Admin.",
-            "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-            "size": 416789,
-            "versions": [
-                {
-                    "version": "3.0",
-                    "date": "2026-06-14",
-                    "localizedDescription": "Shazam-Button, Lock Screen Widget, Siri Shortcut, Song-Statistiken im Admin.",
-                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 416789,
-                    "minOSVersion": "17.0"
-                },
-                {
-                    "version": "2.6",
-                    "date": "2026-06-14",
-                    "localizedDescription": "Watch-App-Crash in SideStore behoben.",
-                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 652061,
-                    "minOSVersion": "17.0"
-                },
-                {
-                    "version": "2.5",
-                    "date": "2026-06-14",
-                    "localizedDescription": "Favoriten-Widget via Keychain-Fallback, Watch-App inklusive.",
-                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 652034,
-                    "minOSVersion": "17.0"
-                },
-                {
-                    "version": "2.4",
-                    "date": "2026-06-14",
-                    "localizedDescription": "Favoriten-Widget: Token-Fallback via Keychain, Watch-App wieder aktiv.",
-                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 416799,
-                    "minOSVersion": "17.0"
-                },
-                {
-                    "version": "2.3",
-                    "date": "2026-06-13",
-                    "localizedDescription": "Medium-Widget im App-Stil – dunkler Hintergrund, roter Akzent, Cover-Thumbnail links.",
-                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 652041,
-                    "minOSVersion": "17.0"
-                },
-                {
-                    "version": "1.9",
-                    "date": "2026-06-13",
-                    "localizedDescription": "Widget lädt zuverlässig Songs und öffnet sie direkt in der App.",
-                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 397699,
-                    "minOSVersion": "17.0"
-                },
-                {
-                    "version": "1.8",
-                    "date": "2026-06-13",
-                    "localizedDescription": "Widget öffnet Song direkt in der App – aktualisiert sich stündlich.",
-                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 397489,
-                    "minOSVersion": "17.0"
-                },
-                {
-                    "version": "1.7",
-                    "date": "2026-06-13",
-                    "localizedDescription": "Homescreen-Widget mit Zufallssong – direkt auf Liedtext tippen.",
-                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 393027,
-                    "minOSVersion": "17.0"
-                },
-                {
-                    "version": "1.6",
-                    "date": "2026-06-13",
-                    "localizedDescription": "Favoriten, QR-Code-Teilen, Onboarding, Push-Benachrichtigungen bei Vorschlagsantworten.",
-                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 615266,
-                    "minOSVersion": "17.0"
-                },
-                {
-                    "version": "1.5",
-                    "date": "2026-06-13",
-                    "localizedDescription": "Favoriten, QR-Code-Teilen, Onboarding, Push-Benachrichtigungen bei Vorschlagsantworten, Widget für den Homescreen.",
-                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 834041,
-                    "minOSVersion": "16.0"
-                },
-                {
-                    "version": "1.4",
-                    "date": "2026-06-12",
-                    "localizedDescription": "Kein Reinzoomen mehr in der App (nativ gesperrt) - echtes App-Gefuehl.",
-                    "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
-                    "size": 279228,
-                    "minOSVersion": "17.0"
-                }
-            ],
-            "appPermissions": {
-                "entitlements": [],
-                "privacy": {
-                    "NSMicrophoneUsageDescription": "Für die Song-Erkennung via ShazamKit.",
-                    "NSCameraUsageDescription": "Für Profilbild-Uploads.",
-                    "NSPhotoLibraryUsageDescription": "Für Profilbild-Uploads."
-                }
-            }
+          "version": "3.1",
+          "date": "2026-06-14",
+          "localizedDescription": "Dunkelmodus-Sync, Screenshot-Teilen, Haptic Feedback, Live Activity, Share Extension, Quick Actions, Focus Filter, StandBy-Widget, Schriftgröße, Favoriten-Swipe, Song-Notizen, Zuletzt-angesehen-Widget, Karneval-Countdown, Karneval-App-Icon.",
+          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+          "size": 521261,
+          "minOSVersion": "17.0"
+        },
+        {
+          "version": "3.0",
+          "date": "2026-06-14",
+          "localizedDescription": "Shazam-Button, Lock Screen Widget, Siri Shortcut, Song-Statistiken im Admin.",
+          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+          "size": 416789,
+          "minOSVersion": "17.0"
+        },
+        {
+          "version": "2.6",
+          "date": "2026-06-14",
+          "localizedDescription": "Watch-App-Crash in SideStore behoben.",
+          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+          "size": 652061,
+          "minOSVersion": "17.0"
+        },
+        {
+          "version": "2.5",
+          "date": "2026-06-14",
+          "localizedDescription": "Favoriten-Widget via Keychain-Fallback, Watch-App inklusive.",
+          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+          "size": 652034,
+          "minOSVersion": "17.0"
+        },
+        {
+          "version": "2.4",
+          "date": "2026-06-14",
+          "localizedDescription": "Favoriten-Widget: Token-Fallback via Keychain, Watch-App wieder aktiv.",
+          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+          "size": 416799,
+          "minOSVersion": "17.0"
+        },
+        {
+          "version": "2.3",
+          "date": "2026-06-13",
+          "localizedDescription": "Medium-Widget im App-Stil – dunkler Hintergrund, roter Akzent, Cover-Thumbnail links.",
+          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+          "size": 652041,
+          "minOSVersion": "17.0"
+        },
+        {
+          "version": "1.9",
+          "date": "2026-06-13",
+          "localizedDescription": "Widget lädt zuverlässig Songs und öffnet sie direkt in der App.",
+          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+          "size": 397699,
+          "minOSVersion": "17.0"
+        },
+        {
+          "version": "1.8",
+          "date": "2026-06-13",
+          "localizedDescription": "Widget öffnet Song direkt in der App – aktualisiert sich stündlich.",
+          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+          "size": 397489,
+          "minOSVersion": "17.0"
+        },
+        {
+          "version": "1.7",
+          "date": "2026-06-13",
+          "localizedDescription": "Homescreen-Widget mit Zufallssong – direkt auf Liedtext tippen.",
+          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+          "size": 393027,
+          "minOSVersion": "17.0"
+        },
+        {
+          "version": "1.6",
+          "date": "2026-06-13",
+          "localizedDescription": "Favoriten, QR-Code-Teilen, Onboarding, Push-Benachrichtigungen bei Vorschlagsantworten.",
+          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+          "size": 615266,
+          "minOSVersion": "17.0"
+        },
+        {
+          "version": "1.5",
+          "date": "2026-06-13",
+          "localizedDescription": "Favoriten, QR-Code-Teilen, Onboarding, Push-Benachrichtigungen bei Vorschlagsantworten, Widget für den Homescreen.",
+          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+          "size": 834041,
+          "minOSVersion": "16.0"
+        },
+        {
+          "version": "1.4",
+          "date": "2026-06-12",
+          "localizedDescription": "Kein Reinzoomen mehr in der App (nativ gesperrt) - echtes App-Gefuehl.",
+          "downloadURL": "https://singopkoelsch.de/app/SingOpKoelsch.ipa",
+          "size": 279228,
+          "minOSVersion": "17.0"
         }
-    ],
-    "news": []
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {
+          "NSMicrophoneUsageDescription": "Für die Song-Erkennung via ShazamKit.",
+          "NSCameraUsageDescription": "Für Profilbild-Uploads.",
+          "NSPhotoLibraryUsageDescription": "Für Profilbild-Uploads."
+        }
+      }
+    }
+  ],
+  "news": []
 }

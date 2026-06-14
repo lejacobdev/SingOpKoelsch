@@ -1,6 +1,7 @@
 import SwiftUI
 import ShazamKit
 import AVFoundation
+import UIKit
 
 @MainActor
 final class RecognizeViewModel: NSObject, ObservableObject, SHSessionDelegate {
@@ -26,6 +27,8 @@ final class RecognizeViewModel: NSObject, ObservableObject, SHSessionDelegate {
                 guard let self else { return }
                 guard granted else { self.state = .error("Mikrofonzugriff verweigert"); return }
                 self.beginCapture()
+                // #33 Start Live Activity
+                RecognitionActivityManager.shared.startActivity()
             }
         }
     }
@@ -34,6 +37,12 @@ final class RecognizeViewModel: NSObject, ObservableObject, SHSessionDelegate {
         audioEngine.stop()
         inputNode.removeTap(onBus: 0)
         state = .idle
+    }
+
+    func stopAndEndActivity() {
+        stop()
+        // #33 End Live Activity
+        RecognitionActivityManager.shared.endActivity()
     }
 
     private func beginCapture() {
@@ -59,6 +68,10 @@ final class RecognizeViewModel: NSObject, ObservableObject, SHSessionDelegate {
             self.stop()
             self.match = item
             self.state = .matched
+
+            // #32 Haptic feedback on successful match
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+
             // Try to find in local DB
             if let title = item.title {
                 do {
@@ -68,6 +81,12 @@ final class RecognizeViewModel: NSObject, ObservableObject, SHSessionDelegate {
                     }
                 } catch {}
             }
+
+            // #33 Update Live Activity with match info
+            RecognitionActivityManager.shared.updateWithMatch(
+                title: item.title ?? "Unbekannt",
+                artist: item.artist ?? ""
+            )
         }
     }
 
@@ -214,9 +233,16 @@ struct RecognizeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Fertig") { dismiss() }
-                        .foregroundStyle(Theme.koelschRed)
+                    Button("Fertig") {
+                        // #33 End Live Activity when user dismisses
+                        RecognitionActivityManager.shared.endActivity()
+                        dismiss()
+                    }
+                    .foregroundStyle(Theme.koelschRed)
                 }
+            }
+            .onDisappear {
+                RecognitionActivityManager.shared.endActivity()
             }
         }
     }

@@ -135,7 +135,7 @@ return [
     'list.group_meta'      => '💿 Album & Autoren',
     'list.heading_prefix'  => 'Lieder',
     'list.heading_accent'  => 'liste',
-    'list.subtitle'        => 'Durchstöbere alle {n} kölschen Lieder oder finde gezielt etwas.',
+    'list.subtitle'        => 'Durchstöbere kölsche Lieder oder finde gezielt etwas.',
     'list.search_ph2'      => 'Titel, Interpret, Album oder Text suchen…',
     'list.clear_search'    => 'Suche leeren',
     'list.filter_artist'   => 'Künstler',
@@ -433,4 +433,7 @@ return [
     'songbook.title'       => 'Liederbuch Generator',
     'songbook.generate'    => 'Liederbuch erzeugen',
     'songbook.download'    => 'Download',
+
+    // ── Lazy loading ──
+    'lieder.load_more'     => 'Mehr laden',
 ];

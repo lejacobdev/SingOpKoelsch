@@ -20,6 +20,13 @@ if ($_isAdmin) {
 }
 $_totalPending = $_pendingChanges + $_pendingCovers;
 
+// #6 Song des Tages — täglich neu, per Datum geseedet
+$_conn = Database::getConnection();
+$_conn->query("CREATE TABLE IF NOT EXISTS singopkoelsch_views (id BIGINT AUTO_INCREMENT PRIMARY KEY, song_id INT NOT NULL, viewed_at DATETIME DEFAULT CURRENT_TIMESTAMP, INDEX idx_song (song_id), INDEX idx_time (viewed_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+$_todaySeed = (int)date('Ymd');
+$_sotdResult = $_conn->query("SELECT l.id, l.title, b.band_name, l.cover_url FROM singopkoelsch_lyrics l LEFT JOIN singopkoelsch_bands b ON b.band_id = l.band_id WHERE l.lyrics IS NOT NULL AND l.lyrics != '' ORDER BY RAND($_todaySeed) LIMIT 1");
+$_sotd = $_sotdResult ? $_sotdResult->fetch_assoc() : null;
+
 $pageTitle = t('home.title');
 $_cssVer = @filemtime(__DIR__ . '/style.css') ?: time();
 ?>
@@ -490,7 +497,29 @@ async function sokDownloadAllSongs() {
         <span class="home-stat-value"><?= number_format($stats['total_bands']) ?></span>
         <span class="home-stat-label"><?= htmlspecialchars(t('home.stat_artists')) ?></span>
       </a>
+      <?php /* #11 Zufälliger Song Button */ ?>
+      <a href="/api/songs/random?redirect=1" class="home-stat" id="random-song-btn" title="Zufälligen Song öffnen">
+        <span class="home-stat-value" style="font-size:1.1rem;">🎲</span>
+        <span class="home-stat-label">Zufälliger Song</span>
+      </a>
     </div>
+
+    <?php if ($_sotd): /* #6 Song des Tages */ ?>
+    <div style="margin-top:1.75rem;width:100%;max-width:400px;">
+      <p style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);margin:0 0 0.6rem;">🎵 Song des Tages</p>
+      <a href="/detail.php?lyrics=<?= (int)$_sotd['id'] ?>" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;text-decoration:none;transition:background 0.18s,border-color 0.18s;">
+        <?php if (!empty($_sotd['cover_url'])): ?>
+          <img src="<?= htmlspecialchars($_sotd['cover_url']) ?>" style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;" alt="">
+        <?php else: ?>
+          <span style="width:44px;height:44px;border-radius:6px;background:rgba(220,38,38,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.3rem;">🎵</span>
+        <?php endif; ?>
+        <div style="text-align:left;min-width:0;">
+          <div style="font-weight:700;font-size:0.92rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($_sotd['title']) ?></div>
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.55);"><?= htmlspecialchars($_sotd['band_name'] ?? '–') ?></div>
+        </div>
+      </a>
+    </div>
+    <?php endif; ?>
   </main>
 
   <footer class="home-footer">
@@ -500,6 +529,8 @@ async function sokDownloadAllSongs() {
       <?= htmlspecialchars(t('home.footer_logged_in', ['name' => $_SESSION['name'] ?? ''])) ?>
     <?php endif; ?>
     <span style="margin:0 0.45em;opacity:0.5;">·</span><a href="/app" style="font-weight:600;">App installieren</a>
+    <span style="margin:0 0.45em;opacity:0.5;">·</span><a href="/rangliste.php">Rangliste</a>
+    <span style="margin:0 0.45em;opacity:0.5;">·</span><a href="/merch.php">❤️ Unterstützen</a>
   </footer>
 
 <script>

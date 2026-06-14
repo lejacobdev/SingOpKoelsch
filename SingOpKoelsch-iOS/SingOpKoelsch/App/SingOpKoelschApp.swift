@@ -6,6 +6,11 @@ struct SingOpKoelschApp: App {
     @StateObject private var auth = AuthManager.shared
     @StateObject private var notifications = NotificationManager.shared
 
+    init() {
+        // #45 Switch to Karneval app icon during Karneval season
+        AppIconManager.updateAppIconIfNeeded()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()

@@ -45,6 +45,24 @@ if (isset($_GET['toggle_trusted'])) {
     }
 }
 
+// Ban / unban user (#27)
+if (isset($_GET['toggle_ban'])) {
+    $user_id = (int)$_GET['toggle_ban'];
+    if ($user_id !== 1) {
+        $stmt = $conn->prepare("SELECT role FROM singopkoelsch_users WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id); $stmt->execute();
+        $user = $stmt->get_result()->fetch_assoc(); $stmt->close();
+        if ($user) {
+            $newRole = ($user['role'] === 'banned') ? 'user' : 'banned';
+            $upd = $conn->prepare("UPDATE singopkoelsch_users SET role = ? WHERE user_id = ?");
+            $upd->bind_param("si", $newRole, $user_id); $upd->execute(); $upd->close();
+            $note = $newRole === 'banned' ? 'Benutzer gesperrt.' : 'Sperre aufgehoben.';
+            header("Location: users.php?msg=" . urlencode($note));
+            exit;
+        }
+    }
+}
+
 // Delete user
 if (isset($_GET['delete'])) {
     $user_id = (int)$_GET['delete'];
@@ -115,11 +133,13 @@ function renderRows($result) {
             $roleBadge = "<span class='badge badge-blue'>admin</span>";
         } elseif ($role === 'trusted') {
             $roleBadge = "<span class='badge badge-green' title='Darf Änderungen ohne Freigabe übernehmen'>✓ vertraut</span>";
+        } elseif ($role === 'banned') {
+            $roleBadge = "<span class='badge badge-red'>gesperrt</span>";
         } else {
             $roleBadge = "<span class='badge badge-gray'>user</span>";
         }
 
-        echo "<tr>";
+        echo "<tr" . ($role === 'banned' ? " style='opacity:0.6;'" : "") . ">";
         echo "<td><strong>$name</strong></td>";
         echo "<td class='text-muted text-sm'>$email</td>";
         echo "<td><span class='badge " . ($verified ? 'badge-green' : 'badge-yellow') . "'>" . ($verified ? 'Ja' : 'Nein') . "</span></td>";
@@ -130,14 +150,19 @@ function renderRows($result) {
         } else {
             $roleToggleLabel = ($role === 'admin') ? 'Zum Benutzer' : 'Zum Admin';
             $trustToggleLabel = ($role === 'trusted') ? 'Vertrauen entziehen' : 'Vertrauen geben';
+            $banLabel = ($role === 'banned') ? 'Entsperren' : 'Sperren';
+            $banClass = ($role === 'banned') ? 'btn-ghost' : 'btn-warning';
             echo "<div class='gap-row' style='flex-wrap:wrap;'>";
-            echo "<a href='?toggle_admin=$uid' class='btn btn-sm btn-ghost'>$roleToggleLabel</a>";
-            if ($role !== 'admin') {
-                echo "<a href='?toggle_trusted=$uid' class='btn btn-sm btn-ghost' title='Bypass: Änderungsvorschläge werden ohne Freigabe übernommen'>$trustToggleLabel</a>";
+            if ($role !== 'banned') {
+                echo "<a href='?toggle_admin=$uid' class='btn btn-sm btn-ghost'>$roleToggleLabel</a>";
+                if ($role !== 'admin') {
+                    echo "<a href='?toggle_trusted=$uid' class='btn btn-sm btn-ghost' title='Bypass: Änderungsvorschläge werden ohne Freigabe übernommen'>$trustToggleLabel</a>";
+                }
+                if (!$verified) {
+                    echo "<a href='?resend_verify=$uid' class='btn btn-sm btn-ghost'>Mail senden</a>";
+                }
             }
-            if (!$verified) {
-                echo "<a href='?resend_verify=$uid' class='btn btn-sm btn-ghost'>Mail senden</a>";
-            }
+            echo "<a href='?toggle_ban=$uid' class='btn btn-sm $banClass' onclick=\"return confirm('$banLabel?')\">$banLabel</a>";
             echo "<a href='?delete=$uid' class='btn btn-sm btn-danger' onclick=\"return confirm('Benutzer wirklich löschen?')\">Löschen</a>";
             echo "</div>";
         }

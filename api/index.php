@@ -276,7 +276,28 @@ route('GET', ['songs', 'random'], function() use ($conn) {
     $song = $result ? $result->fetch_assoc() : null;
     if (!$song) json_err('No songs found', 404);
     $song['id'] = (int)$song['id'];
+    if (!empty($_GET['redirect'])) {
+        header('Location: /detail.php?lyrics=' . $song['id']);
+        exit;
+    }
     json_ok($song);
+});
+
+route('GET', ['songs', 'random', 'band', ':id'], function($params) use ($conn) {
+    $bandId = (int)$params['id'];
+    if (!$bandId) json_err('Invalid band id', 400);
+    $stmt = $conn->prepare(
+        "SELECT l.id FROM singopkoelsch_lyrics l
+         WHERE l.band_id = ? AND l.lyrics IS NOT NULL AND l.lyrics != ''
+         ORDER BY RAND() LIMIT 1"
+    );
+    $stmt->bind_param("i", $bandId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$row) json_err('No songs found for this band', 404);
+    header('Location: /detail.php?lyrics=' . (int)$row['id']);
+    exit;
 });
 
 route('GET', ['songs', ':id'], function($params) use ($conn) {
@@ -887,6 +908,96 @@ route('DELETE', ['favorites', ':id'], function($params) use ($conn) {
     $stmt->execute();
     $stmt->close();
     json_ok(['message' => 'Removed', 'song_id' => $songId]);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BAND FOLLOWS (#50)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function follows_ensure_table(mysqli $conn): void {
+    $conn->query("CREATE TABLE IF NOT EXISTS singopkoelsch_band_follows (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, band_id INT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uniq_follow (user_id, band_id), INDEX idx_user (user_id), INDEX idx_band (band_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+route('GET', ['bands', ':id', 'follow'], function($params) use ($conn) {
+    $user   = require_auth();
+    $bandId = (int)$params['id'];
+    follows_ensure_table($conn);
+    $stmt = $conn->prepare("SELECT 1 FROM singopkoelsch_band_follows WHERE user_id = ? AND band_id = ?");
+    $stmt->bind_param("ii", $user['user_id'], $bandId);
+    $stmt->execute();
+    $following = (bool)$stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    json_ok(['following' => $following, 'band_id' => $bandId]);
+});
+
+route('POST', ['bands', ':id', 'follow'], function($params) use ($conn) {
+    $user   = require_auth();
+    $bandId = (int)$params['id'];
+    follows_ensure_table($conn);
+    $stmt = $conn->prepare("INSERT IGNORE INTO singopkoelsch_band_follows (user_id, band_id) VALUES (?, ?)");
+    $stmt->bind_param("ii", $user['user_id'], $bandId);
+    $stmt->execute(); $stmt->close();
+    json_ok(['following' => true, 'band_id' => $bandId]);
+});
+
+route('DELETE', ['bands', ':id', 'follow'], function($params) use ($conn) {
+    $user   = require_auth();
+    $bandId = (int)$params['id'];
+    follows_ensure_table($conn);
+    $stmt = $conn->prepare("DELETE FROM singopkoelsch_band_follows WHERE user_id = ? AND band_id = ?");
+    $stmt->bind_param("ii", $user['user_id'], $bandId);
+    $stmt->execute(); $stmt->close();
+    json_ok(['following' => false, 'band_id' => $bandId]);
+});
+
+route('GET', ['bands', 'followed'], function() use ($conn) {
+    $user = require_auth();
+    follows_ensure_table($conn);
+    $stmt = $conn->prepare(
+        "SELECT b.band_id, b.band_name, (SELECT COUNT(*) FROM singopkoelsch_lyrics l WHERE l.band_id=b.band_id) as song_count
+         FROM singopkoelsch_band_follows f
+         JOIN singopkoelsch_bands b ON b.band_id = f.band_id
+         WHERE f.user_id = ? ORDER BY b.band_name ASC"
+    );
+    $stmt->bind_param("i", $user['user_id']);
+    $stmt->execute();
+    json_ok($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SONG RECOMMENDATION (#47)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+route('POST', ['songs', ':id', 'recommend'], function($params) use ($conn) {
+    $user   = require_auth();
+    $songId = (int)$params['id'];
+    $in     = input();
+    $recipientEmail = trim($in['email'] ?? '');
+    $note   = trim($in['note'] ?? '');
+
+    if (!filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+        json_err('Valid recipient email required');
+    }
+
+    $song = Database::queryDataById($songId);
+    if (!$song) json_err('Song not found', 404);
+
+    require_once __DIR__ . '/../functions.php';
+    $songUrl = SITE_URL . '/detail.php?lyrics=' . $songId;
+    $senderName = $user['name'];
+    $body = "$senderName hat dir einen Kölsch-Song empfohlen:\n\n\"{$song['title']}\"\n\n$songUrl"
+           . ($note ? "\n\nNotiz: $note" : '');
+    $html = renderEmailHtml('Song-Empfehlung', [
+        'greeting'    => 'Hej,',
+        'intro'       => htmlspecialchars($senderName) . ' hat dir einen Kölsch-Song empfohlen: <strong>' . htmlspecialchars($song['title']) . '</strong>',
+        'cta_label'   => 'Song öffnen',
+        'cta_url'     => $songUrl,
+        'outro'       => $note ? 'Notiz: ' . htmlspecialchars($note) : '',
+        'footer_note' => 'Diese Empfehlung wurde über singopkoelsch.de gesendet.',
+    ]);
+    sendMail($recipientEmail, 'Sing op Kölsch Empfehlung', 'Song-Empfehlung von ' . $senderName, $body, ['html' => $html]);
+
+    json_ok(['message' => 'Recommendation sent']);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════

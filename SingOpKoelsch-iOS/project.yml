@@ -36,12 +36,16 @@ targets:
       - target: SingOpKoelschWidget
         embed: true
         link: false
+      - target: SingOpKoelschShare
+        embed: true
+        link: false
 
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.singopkoelsch.app
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: AppIconKarneval
         INFOPLIST_FILE: SingOpKoelsch/Info.plist
         CODE_SIGN_ENTITLEMENTS: SingOpKoelsch/SingOpKoelsch.entitlements
         TARGETED_DEVICE_FAMILY: "1,2"   # iPhone + iPad
@@ -50,8 +54,8 @@ targets:
       path: SingOpKoelsch/Info.plist
       properties:
         CFBundleDisplayName: "Sing op Kölsch"
-        CFBundleShortVersionString: "3.0"
-        CFBundleVersion: "20"
+        CFBundleShortVersionString: "3.1"
+        CFBundleVersion: "21"
         CFBundleURLTypes:
           - CFBundleURLName: de.singopkoelsch.app
             CFBundleURLSchemes:
@@ -73,6 +77,16 @@ targets:
         NSMicrophoneUsageDescription: "Wird für die Song-Erkennung via ShazamKit benötigt."
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: false
+        # #33 Live Activities
+        NSSupportsLiveActivities: true
+        # #45 Alternate icons
+        CFBundleIcons:
+          CFBundlePrimaryIcon:
+            CFBundleIconName: AppIcon
+          CFBundleAlternateIcons:
+            AppIconKarneval:
+              CFBundleIconName: AppIconKarneval
+              UIPrerenderedIcon: false
 
   SingOpKoelschWatch:
     type: application
@@ -124,6 +138,36 @@ targets:
         CFBundleVersion: "1"
         NSExtension:
           NSExtensionPointIdentifier: "com.apple.widgetkit-extension"
+
+  # #34 Share Extension
+  SingOpKoelschShare:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+
+    sources:
+      - path: SingOpKoelschShare
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.singopkoelsch.app.share
+        INFOPLIST_FILE: SingOpKoelschShare/Info.plist
+        TARGETED_DEVICE_FAMILY: "1,2"
+
+    info:
+      path: SingOpKoelschShare/Info.plist
+      properties:
+        CFBundleDisplayName: "Sing op Kölsch"
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        NSExtension:
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsText: true
+            NSExtensionJavaScriptPreprocessingFile: ""
+          NSExtensionPointIdentifier: "com.apple.share-services"
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).ShareViewController"
 
 configs:
   Debug:   debug

@@ -30,6 +30,11 @@ if (!empty($change["proposed_changes"])) {
 }
 
 if ($ok) {
+    // #71 Award points for approved proposal
+    Database::ensurePointsSystem();
+    Database::awardPoints((int)$change['user_id'], 10);
+    Database::awardBadge((int)$change['user_id'], 'first_proposal');
+
     $title   = $change['title'];
     $subject = 'Dein Änderungsvorschlag für "' . $title . '" wurde genehmigt';
     $songUrl = SITE_URL . '/detail.php?lyrics=' . $lyricId;

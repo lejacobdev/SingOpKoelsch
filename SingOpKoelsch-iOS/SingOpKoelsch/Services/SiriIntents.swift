@@ -1,5 +1,8 @@
+// SingOpKoelsch/Services/SiriIntents.swift
 import AppIntents
 import WidgetKit
+
+// MARK: - Intents
 
 struct OpenRandomSongIntent: AppIntent {
     static var title: LocalizedStringResource = "Zufälligen Kölsch-Song öffnen"
@@ -33,16 +36,33 @@ struct OpenFavoriteSongIntent: AppIntent {
     }
 }
 
+// MARK: - App Shortcuts
+
 struct SingOpKoelschShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
             intent: OpenRandomSongIntent(),
-            phrases: ["Zufälligen Song in \(.applicationName)", "Sing op Kölsch Song", "Kölsch Song"],
+            phrases: [
+                "Zufälligen Song in \(.applicationName)",
+                "Sing op Kölsch Song",
+                "Kölsch Song öffnen"
+            ],
             shortTitle: "Zufälliger Song",
             systemImageName: "music.note"
         )
+        AppShortcut(
+            intent: OpenFavoriteSongIntent(),
+            phrases: [
+                "Lieblingssong in \(.applicationName)",
+                "Sing op Kölsch Favorit"
+            ],
+            shortTitle: "Lieblingssong",
+            systemImageName: "heart.fill"
+        )
     }
 }
+
+// MARK: - Notification Names
 
 extension Notification.Name {
     static let siriOpenSong = Notification.Name("siriOpenSong")
