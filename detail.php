@@ -1363,7 +1363,7 @@ require_once "partials/nav.php";
   <!-- #9 Verwandte Songs + #52 Zufälliger Song dieser Band -->
   <div style="margin-top:2.5rem;border-top:1px solid var(--border);padding-top:1.75rem;">
     <header class="detail-section-head">
-      <h3>Mehr von <?= htmlspecialchars($bandName) ?></h3>
+      <h3>Mehr von <?= $bandName ?></h3>
       <a href="/api/songs/random/band/<?= $_bandId ?>?redirect=1" class="round-icon-btn" title="Zufälliger Song dieser Band" aria-label="Zufälliger Song dieser Band">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
       </a>
